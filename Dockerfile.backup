@@ -1,0 +1,5 @@
+FROM docker:24-dind
+RUN apk add --no-cache bash postgresql-client
+COPY scripts/backup.sh /usr/local/bin/backup.sh
+RUN chmod +x /usr/local/bin/backup.sh
+CMD ["sh", "-c", "while true; do backup.sh $${DB_CONTAINER:-nadi-db} $${DB_NAME:-nadi} $${DB_USER:-nadi}; sleep 86400; done"]

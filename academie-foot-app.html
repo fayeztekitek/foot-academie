@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Nadi — Gestion d'académie de football</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pitch-dark:#122A22;
+    --pitch:#1E4638;
+    --grass:#2F6F4E;
+    --gold:#C9A227;
+    --red:#C8102E;
+    --bg:#F5F3EC;
+    --card:#FFFFFF;
+    --ink:#16201C;
+    --ink-soft:#5B6660;
+    --line:#DEDACB;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Work Sans',sans-serif;}
+  h1,h2,h3,.num,.logo-word{font-family:'Bebas Neue',sans-serif;letter-spacing:.02em;}
+  .mono{font-family:'Roboto Mono',monospace;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .side{width:230px;flex-shrink:0;background:var(--pitch-dark);color:#EDEADF;display:flex;flex-direction:column;padding:28px 0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 24px 26px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:14px;}
+  .crest{width:34px;height:34px;border-radius:50%;background:conic-gradient(from 200deg,var(--grass),var(--gold),var(--grass));display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';color:var(--pitch-dark);font-size:15px;}
+  .logo-word{font-size:24px;line-height:1;color:#fff;}
+  .logo-sub{font-size:10.5px;color:#AEB8AC;letter-spacing:.06em;margin-top:1px;}
+  nav{display:flex;flex-direction:column;padding:6px 12px;gap:2px;flex:1;}
+  nav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:6px;color:#C7D1C4;text-decoration:none;font-size:14.5px;font-weight:500;cursor:pointer;border-left:3px solid transparent;}
+  nav a svg{width:17px;height:17px;opacity:.85;flex-shrink:0;}
+  nav a:hover{background:rgba(255,255,255,.05);color:#fff;}
+  nav a.active{background:rgba(201,162,39,.14);color:#fff;border-left:3px solid var(--gold);}
+  .side-foot{padding:14px 24px 0;border-top:1px solid rgba(255,255,255,.1);margin-top:10px;display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--grass);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#fff;}
+  .side-foot div{font-size:12.5px;line-height:1.3;}
+  .side-foot .role{color:#93A092;}
+
+  /* Main */
+  main{flex:1;min-width:0;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 34px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5;}
+  .topbar h1{font-size:26px;margin:0;color:var(--pitch-dark);}
+  .topbar .date{font-size:12.5px;color:var(--ink-soft);margin-top:1px;}
+  .top-actions{display:flex;align-items:center;gap:14px;}
+  .btn{border:none;cursor:pointer;font-family:'Work Sans';font-weight:600;font-size:13.5px;border-radius:6px;padding:10px 16px;}
+  .btn-primary{background:var(--pitch);color:#fff;}
+  .btn-primary:hover{background:var(--pitch-dark);}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .bell{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
+  .bell::after{content:'';position:absolute;top:7px;right:8px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--card);}
+
+  .view{padding:30px 34px 60px;display:none;}
+  .view.active{display:block;}
+
+  /* Dashboard stats */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:26px;}
+  .stat{background:var(--card);padding:20px 22px;}
+  .stat .label{font-size:12px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  .stat .num{font-size:38px;color:var(--pitch-dark);margin-top:4px;}
+  .stat .delta{font-size:12.5px;margin-top:2px;}
+  .up{color:var(--grass);} .down{color:var(--red);}
+
+  .grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:start;}
+  .panel{background:var(--card);border:1px solid var(--line);}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .panel-head h3{font-size:19px;margin:0;color:var(--pitch-dark);}
+  .panel-head a{font-size:12.5px;color:var(--pitch);font-weight:600;text-decoration:none;}
+  .panel-body{padding:6px 0;}
+
+  .train-row{display:flex;gap:14px;align-items:center;padding:13px 20px;border-bottom:1px solid #F0EEE4;}
+  .train-row:last-child{border-bottom:none;}
+  .train-time{width:56px;flex-shrink:0;text-align:center;}
+  .train-time .h{font-family:'Bebas Neue';font-size:20px;color:var(--pitch-dark);}
+  .train-time .m{font-size:10.5px;color:var(--ink-soft);}
+  .train-info b{font-size:14px;} .train-info div.sub{font-size:12px;color:var(--ink-soft);}
+  .tag{margin-left:auto;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;}
+  .tag.terrain{background:#E6F1EA;color:var(--grass);}
+  .tag.salle{background:#F1E9D6;color:#8A6A15;}
+
+  .alert-row{display:flex;gap:12px;padding:13px 20px;border-bottom:1px solid #F0EEE4;align-items:flex-start;}
+  .alert-row:last-child{border-bottom:none;}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;}
+  .dot.rouge{background:var(--red);} .dot.jaune{background:var(--gold);}
+  .alert-row b{font-size:13.5px;} .alert-row div.sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:11px 20px;border-bottom:1px solid var(--line);font-weight:600;}
+  td{padding:13px 20px;border-bottom:1px solid #F0EEE4;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .player{display:flex;align-items:center;gap:10px;}
+  .p-avatar{width:30px;height:30px;border-radius:50%;background:var(--pitch);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;flex-shrink:0;}
+  .p-name b{display:block;font-size:13.5px;} .p-name span{font-size:11.5px;color:var(--ink-soft);}
+  .pill{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;display:inline-block;}
+  .pill.ok{background:#E6F1EA;color:var(--grass);}
+  .pill.retard{background:#FBE7E7;color:var(--red);}
+  .pill.attente{background:#F1E9D6;color:#8A6A15;}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:14px;flex-wrap:wrap;}
+  .search{flex:1;max-width:340px;position:relative;}
+  .search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--line);border-radius:6px;font-family:'Work Sans';font-size:13.5px;background:#fff;}
+  .search svg{position:absolute;left:11px;top:11px;width:15px;height:15px;color:var(--ink-soft);}
+  .filters{display:flex;gap:8px;}
+  .chip{font-size:12.5px;font-weight:600;padding:8px 13px;border:1px solid var(--line);border-radius:20px;background:#fff;cursor:pointer;color:var(--ink-soft);}
+  .chip.active{background:var(--pitch-dark);border-color:var(--pitch-dark);color:#fff;}
+
+  /* Paiements */
+  .inv-total{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:24px;}
+  .inv-total .stat{flex:1;}
+  .amount{font-family:'Roboto Mono';font-weight:500;}
+
+  /* Calendrier */
+  .cal{display:grid;grid-template-columns:70px repeat(7,1fr);border:1px solid var(--line);background:var(--line);gap:1px;}
+  .cal .head{background:#F9F8F3;padding:9px 4px;text-align:center;font-size:11.5px;font-weight:600;color:var(--ink-soft);}
+  .cal .hourcell{background:#F9F8F3;padding:8px 6px;font-size:10.5px;color:var(--ink-soft);text-align:right;}
+  .cal .cell{background:#fff;min-height:52px;position:relative;padding:3px;}
+  .ev{position:absolute;inset:2px;border-radius:4px;padding:4px 6px;font-size:10.5px;font-weight:600;line-height:1.25;overflow:hidden;}
+  .ev.u9{background:#DCEEE2;color:#1F5A3B;border-left:3px solid var(--grass);}
+  .ev.u13{background:#E9E1C9;color:#7A5C10;border-left:3px solid var(--gold);}
+  .ev.u17{background:#F6DADE;color:#8E1B2E;border-left:3px solid var(--red);}
+  .ev.elite{background:#D8E3EC;color:#1E3E57;border-left:3px solid #3A6C95;}
+  .legend{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;}
+  .legend span{font-size:12px;display:flex;align-items:center;gap:6px;color:var(--ink-soft);}
+  .legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+  /* Portail parent */
+  .parent-shell{max-width:400px;margin:0 auto;background:var(--pitch-dark);border-radius:26px;padding:14px;box-shadow:0 30px 60px -20px rgba(18,42,34,.4);}
+  .parent-screen{background:var(--bg);border-radius:18px;overflow:hidden;}
+  .p-top{background:var(--pitch);color:#fff;padding:22px 20px 46px;position:relative;}
+  .p-top .greet{font-size:12.5px;color:#B9CBBE;}
+  .p-top h2{font-family:'Bebas Neue';font-size:26px;margin:2px 0 0;color:#fff;}
+  .child-card{background:#fff;border-radius:14px;padding:14px 16px;margin:-30px 16px 0;box-shadow:0 8px 20px rgba(0,0,0,.08);display:flex;align-items:center;gap:12px;}
+  .child-card .p-avatar{width:44px;height:44px;font-size:15px;}
+  .child-card b{font-size:14.5px;display:block;} .child-card span{font-size:11.5px;color:var(--ink-soft);}
+  .p-sections{padding:16px 16px 20px;display:flex;flex-direction:column;gap:12px;}
+  .p-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .p-card .row{display:flex;justify-content:space-between;align-items:center;}
+  .p-card h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:600;}
+  .p-card .big{font-family:'Bebas Neue';font-size:22px;color:var(--pitch-dark);}
+  .progress{height:6px;background:#EEEBDF;border-radius:3px;margin-top:8px;overflow:hidden;}
+  .progress i{display:block;height:100%;background:var(--grass);}
+  .paybtn{margin-top:10px;width:100%;background:var(--red);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:600;font-size:13px;font-family:'Work Sans';cursor:pointer;}
+  .navdots{display:flex;justify-content:center;gap:6px;padding:10px 0 4px;}
+  .navdots i{width:5px;height:5px;border-radius:50%;background:#5B665F;display:block;}
+
+  /* Comparison */
+  .compare-wrap{margin-top:8px;}
+  .compare-intro{max-width:720px;font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin-bottom:22px;}
+  table.cmp{border:1px solid var(--line);}
+  table.cmp th, table.cmp td{border-right:1px solid var(--line);}
+  table.cmp th:last-child, table.cmp td:last-child{border-right:none;}
+  table.cmp td.yes{color:var(--grass);font-weight:700;text-align:center;}
+  table.cmp td.no{color:#C8BDA6;text-align:center;}
+  .cmp-note{font-size:12px;color:var(--ink-soft);margin-top:14px;max-width:720px;line-height:1.6;}
+
+  /* Modals */
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,32,26,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:#fff;width:100%;max-width:460px;border-radius:10px;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);flex-shrink:0;}
+  .modal-head h3{margin:0;font-size:20px;color:var(--pitch-dark);}
+  .modal-close{background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:var(--ink-soft);padding:4px;}
+  .modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+  .field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;}
+  .field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;font-family:'Work Sans';font-size:13.5px;background:#fff;color:var(--ink);}
+  .field input:focus,.field select:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  .field-check{font-size:13px;font-weight:500;text-transform:none;display:flex;align-items:center;color:var(--ink);}
+  .field-check input{width:auto;margin-right:8px;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--line);flex-shrink:0;}
+  .row-del{background:none;border:none;color:var(--red);font-size:17px;line-height:1;cursor:pointer;padding:2px 6px;}
+  .row-del:hover{color:#8A0F22;}
+
+  /* Table scroll wrapper */
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Hamburger + mobile drawer */
+  .hamburger{display:none;flex-direction:column;justify-content:center;gap:4px;width:34px;height:34px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;flex-shrink:0;}
+  .hamburger span{display:block;width:16px;height:2px;background:var(--pitch-dark);margin:0 auto;}
+  .side-overlay{display:none;position:fixed;inset:0;background:rgba(10,20,16,.45);z-index:39;}
+  .side-overlay.active{display:block;}
+
+  /* ===== Responsive ===== */
+  @media (max-width:1000px){
+    .grid-2{grid-template-columns:1fr;}
+    .stat-row{grid-template-columns:repeat(2,1fr);}
+  }
+
+  @media (max-width:860px){
+    .hamburger{display:flex;}
+    .side{position:fixed;top:0;left:0;height:100vh;z-index:40;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.3);}
+    .side.open{transform:translateX(0);}
+    .topbar{padding:16px 18px;}
+    .topbar h1{font-size:21px;}
+    .top-actions .btn-ghost{display:none;}
+    .top-actions{gap:8px;}
+    .view{padding:18px 16px 50px;}
+    .stat-row{grid-template-columns:repeat(2,1fr);}
+    .stat{padding:14px 16px;}
+    .stat .num{font-size:28px;}
+    .toolbar{flex-direction:column;align-items:stretch;}
+    .search{max-width:none;}
+    .filters{overflow-x:auto;padding-bottom:2px;}
+    .filters .chip{flex-shrink:0;}
+    .field-row{flex-direction:column;}
+    .modal{max-width:100%;margin:0 6px;}
+    .cal{font-size:11px;grid-template-columns:52px repeat(7,minmax(84px,1fr));min-width:680px;}
+    .cal-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .parent-shell{max-width:100%;padding:10px;}
+  }
+
+  @media (max-width:480px){
+    .stat-row{grid-template-columns:1fr;}
+    .topbar h1{font-size:19px;}
+    .panel-head h3{font-size:16.5px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="side-overlay" id="sideOverlay"></div>
+
+  <aside class="side">
+    <div class="brand">
+      <div class="crest">EF</div>
+      <div>
+        <div class="logo-word">NADI</div>
+        <div class="logo-sub">ACADÉMIE DE FOOTBALL</div>
+      </div>
+    </div>
+    <nav>
+      <a class="nav-link active" data-view="dashboard">Tableau de bord</a>
+      <a class="nav-link" data-view="joueurs">Joueurs</a>
+      <a class="nav-link" data-view="paiements">Paiements</a>
+      <a class="nav-link" data-view="calendrier">Entraînements</a>
+      <a class="nav-link" data-view="entraineurs">Entraîneurs</a>
+      <a class="nav-link" data-view="parametres">Catégories &amp; créneaux</a>
+      <a class="nav-link" data-view="parent">Portail parents</a>
+      <a class="nav-link" data-view="compare">Comparatif marché</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar">FT</div>
+      <div><b style="display:block;color:#fff;">Fayez</b><span class="role">Directeur académie</span></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="hamburger" id="hamburger" aria-label="Ouvrir le menu"><span></span><span></span><span></span></button>
+        <div>
+          <h1 id="pageTitle">Tableau de bord</h1>
+          <div class="date">Samedi 5 septembre 2026 — Saison 2026/2027</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="bell"></div>
+        <button class="btn btn-ghost">Exporter</button>
+        <button class="btn btn-primary" onclick="openModal('modalJoueur')">+ Nouveau joueur</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="dashboard">
+      <div class="stat-row">
+        <div class="stat"><div class="label">Joueurs inscrits</div><div class="num">184</div><div class="delta up">+6 ce mois-ci</div></div>
+        <div class="stat"><div class="label">Taux de présence</div><div class="num">91%</div><div class="delta up">+2 pts</div></div>
+        <div class="stat"><div class="label">Paiements en retard</div><div class="num">12</div><div class="delta down">2 340 DT dus</div></div>
+        <div class="stat"><div class="label">Revenu du mois</div><div class="num">38 250 <span style="font-size:18px;">DT</span></div><div class="delta up">+8% vs août</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>Entraînements du jour</h3><a href="#" onclick="showView('calendrier');return false;">Voir le planning →</a></div>
+          <div class="panel-body">
+            <div class="train-row"><div class="train-time"><div class="h">16:30</div><div class="m">45 min</div></div><div class="train-info"><b>U9 — Groupe A</b><div class="sub">Coach Karim · Terrain synthétique 2</div></div><span class="tag terrain">Terrain</span></div>
+            <div class="train-row"><div class="train-time"><div class="h">17:30</div><div class="m">75 min</div></div><div class="train-info"><b>U13 — Élite</b><div class="sub">Coach Sami · Terrain principal</div></div><span class="tag terrain">Terrain</span></div>
+            <div class="train-row"><div class="train-time"><div class="h">18:00</div><div class="m">60 min</div></div><div class="train-info"><b>Gardiens U11–U17</b><div class="sub">Coach Wassim · Salle de motricité</div></div><span class="tag salle">Salle</span></div>
+            <div class="train-row"><div class="train-time"><div class="h">19:15</div><div class="m">90 min</div></div><div class="train-info"><b>U17 — Pré-nationale</b><div class="sub">Coach Karim · Terrain principal</div></div><span class="tag terrain">Terrain</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Alertes conformité</h3><a href="#">Tout voir →</a></div>
+          <div class="panel-body">
+            <div class="alert-row"><span class="dot rouge"></span><div><b>3 certificats médicaux expirés</b><div class="sub">Obligatoire pour la licence FTF — à régulariser sous 15 jours</div></div></div>
+            <div class="alert-row"><span class="dot rouge"></span><div><b>Autorisation parentale manquante</b><div class="sub">1 mineur — déplacement tournoi Sousse du 20/09</div></div></div>
+            <div class="alert-row"><span class="dot jaune"></span><div><b>Renouvellement licence FTF</b><div class="sub">7 joueurs U17 — échéance 30/09/2026</div></div></div>
+            <div class="alert-row"><span class="dot jaune"></span><div><b>Consentement RGPD/protection des données à renouveler</b><div class="sub">Photos et vidéos — 4 familles</div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- JOUEURS -->
+    <section class="view" id="joueurs">
+      <div class="toolbar">
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="joueurSearch" placeholder="Rechercher un joueur, un parent, une catégorie…"></div>
+        <div class="filters" id="catFilters">
+          <span class="chip active" data-cat="Tous">Tous</span>
+          <span class="chip" data-cat="U9">U9</span>
+          <span class="chip" data-cat="U13">U13</span>
+          <span class="chip" data-cat="U17">U17</span>
+          <span class="chip" data-cat="Élite">Élite</span>
+        </div>
+        <button class="btn btn-ghost" onclick="openModal('modalParent')">+ Ajouter un parent</button>
+      </div>
+      <div class="panel">
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Joueur</th><th>Catégorie</th><th>Parent référent</th><th>Paiement</th><th>Certificat médical</th><th>Présence 30j</th></tr></thead>
+          <tbody id="playersBody">
+            <tr data-cat="U9"><td><div class="player"><div class="p-avatar">MA</div><div class="p-name"><b>Mohamed Ali Trabelsi</b><span>Né en 2015</span></div></div></td><td>U9</td><td>Salah Trabelsi</td><td><span class="pill ok">À jour</span></td><td><span class="pill ok">Valide</span></td><td>95%</td></tr>
+            <tr data-cat="U13"><td><div class="player"><div class="p-avatar">YB</div><div class="p-name"><b>Yassine Ben Salem</b><span>Né en 2013</span></div></div></td><td>U13</td><td>Nadia Ben Salem</td><td><span class="pill retard">Retard — 15j</span></td><td><span class="pill ok">Valide</span></td><td>88%</td></tr>
+            <tr data-cat="U17"><td><div class="player"><div class="p-avatar">AK</div><div class="p-name"><b>Ahmed Karoui</b><span>Né en 2009</span></div></div></td><td>U17</td><td>Riadh Karoui</td><td><span class="pill ok">À jour</span></td><td><span class="pill retard">Expiré</span></td><td>79%</td></tr>
+            <tr data-cat="Élite"><td><div class="player"><div class="p-avatar">SG</div><div class="p-name"><b>Sofien Gharbi</b><span>Né en 2008</span></div></div></td><td>Élite</td><td>Amel Gharbi</td><td><span class="pill attente">Partiel</span></td><td><span class="pill ok">Valide</span></td><td>97%</td></tr>
+            <tr data-cat="U13"><td><div class="player"><div class="p-avatar">HB</div><div class="p-name"><b>Hamza Bouazizi</b><span>Né en 2014</span></div></div></td><td>U13</td><td>Fathi Bouazizi</td><td><span class="pill ok">À jour</span></td><td><span class="pill ok">Valide</span></td><td>91%</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAIEMENTS -->
+    <section class="view" id="paiements">
+      <div class="inv-total">
+        <div class="stat"><div class="label">Facturé ce mois</div><div class="num amount">42 900 DT</div></div>
+        <div class="stat"><div class="label">Encaissé</div><div class="num amount" style="color:var(--grass);">38 250 DT</div></div>
+        <div class="stat"><div class="label">En retard</div><div class="num amount" style="color:var(--red);">2 340 DT</div></div>
+        <div class="stat"><div class="label">Échéances à venir</div><div class="num amount">2 310 DT</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Échéancier des familles</h3><a href="#">Relancer les impayés →</a></div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Famille</th><th>Formule</th><th>Échéance</th><th>Montant</th><th>Statut</th></tr></thead>
+          <tbody>
+            <tr><td>Ben Salem (2 enfants)</td><td>Mensuel — Standard</td><td class="mono">05/09/2026</td><td class="mono">280 DT</td><td><span class="pill retard">15 jours de retard</span></td></tr>
+            <tr><td>Karoui</td><td>Trimestriel — Élite</td><td class="mono">01/09/2026</td><td class="mono">750 DT</td><td><span class="pill attente">Rappel envoyé</span></td></tr>
+            <tr><td>Trabelsi</td><td>Mensuel — Standard</td><td class="mono">01/09/2026</td><td class="mono">140 DT</td><td><span class="pill ok">Payé — carte bancaire</span></td></tr>
+            <tr><td>Gharbi</td><td>Annuel — Élite</td><td class="mono">10/09/2026</td><td class="mono">1 200 DT</td><td><span class="pill attente">Acompte reçu</span></td></tr>
+            <tr><td>Bouazizi</td><td>Mensuel — Standard</td><td class="mono">01/09/2026</td><td class="mono">140 DT</td><td><span class="pill ok">Payé — virement</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALENDRIER -->
+    <section class="view" id="calendrier">
+      <div class="cal-wrap">
+      <div class="cal">
+        <div class="head"></div>
+        <div class="head">Lun</div><div class="head">Mar</div><div class="head">Mer</div><div class="head">Jeu</div><div class="head">Ven</div><div class="head">Sam</div><div class="head">Dim</div>
+
+        <div class="hourcell">16:00</div>
+        <div class="cell"><div class="ev u9">U9 · Terrain 2</div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="ev u9">U9 · Terrain 2</div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="ev u9">U9 · Terrain 2</div></div>
+        <div class="cell"><div class="ev u13">Tournoi amical U13</div></div>
+        <div class="cell"></div>
+
+        <div class="hourcell">17:30</div>
+        <div class="cell"><div class="ev u13">U13 Élite · Principal</div></div>
+        <div class="cell"><div class="ev elite">Élite · Prépa physique</div></div>
+        <div class="cell"><div class="ev u13">U13 Élite · Principal</div></div>
+        <div class="cell"><div class="ev elite">Élite · Prépa physique</div></div>
+        <div class="cell"><div class="ev u13">U13 Élite · Principal</div></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+
+        <div class="hourcell">19:00</div>
+        <div class="cell"><div class="ev u17">U17 · Principal</div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="ev u17">U17 · Principal</div></div>
+        <div class="cell"><div class="ev u17">U17 · Match retour</div></div>
+        <div class="cell"><div class="ev u17">U17 · Principal</div></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+      </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--grass);"></i>U9 — Formation</span>
+        <span><i style="background:var(--gold);"></i>U13 — Élite</span>
+        <span><i style="background:var(--red);"></i>U17 — Pré-nationale</span>
+        <span><i style="background:#3A6C95;"></i>Groupe Élite / Préparation physique</span>
+      </div>
+    </section>
+
+    <!-- ENTRAINEURS -->
+    <section class="view" id="entraineurs">
+      <div class="toolbar">
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="coachSearch" placeholder="Rechercher un entraîneur…"></div>
+        <button class="btn btn-primary" onclick="openModal('modalCoach')">+ Nouvel entraîneur</button>
+      </div>
+      <div class="panel">
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Entraîneur</th><th>Spécialité</th><th>Catégories encadrées</th><th>Téléphone</th><th>Statut</th></tr></thead>
+          <tbody id="coachesBody">
+            <tr><td><div class="player"><div class="p-avatar">KA</div><div class="p-name"><b>Karim Amri</b><span>CAF C</span></div></div></td><td>Formation U9-U11</td><td>U9</td><td>+216 22 345 678</td><td><span class="pill ok">Actif</span></td></tr>
+            <tr><td><div class="player"><div class="p-avatar">SB</div><div class="p-name"><b>Sami Bouzid</b><span>CAF B</span></div></div></td><td>Performance</td><td>U13, Élite</td><td>+216 24 561 890</td><td><span class="pill ok">Actif</span></td></tr>
+            <tr><td><div class="player"><div class="p-avatar">WH</div><div class="p-name"><b>Wassim Herzi</b><span>Entraîneur gardiens</span></div></div></td><td>Gardiens de but</td><td>U13, U17</td><td>+216 20 112 233</td><td><span class="pill ok">Actif</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARAMETRES : CATEGORIES & CRENEAUX -->
+    <section class="view" id="parametres">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>Créneaux d'entraînement</h3><a href="#" onclick="openModal('modalCreneau');return false;">+ Ajouter →</a></div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Jour</th><th>Horaire</th><th>Catégorie</th><th>Entraîneur</th><th>Terrain</th><th></th></tr></thead>
+            <tbody id="slotsBody">
+              <tr><td>Lundi</td><td>16:30–17:15</td><td>U9</td><td>Karim Amri</td><td>Terrain 2</td><td><button class="row-del" onclick="this.closest('tr').remove()">×</button></td></tr>
+              <tr><td>Mardi</td><td>17:30–18:45</td><td>U13</td><td>Sami Bouzid</td><td>Terrain principal</td><td><button class="row-del" onclick="this.closest('tr').remove()">×</button></td></tr>
+              <tr><td>Mercredi</td><td>18:00–19:00</td><td>U17</td><td>Wassim Herzi</td><td>Salle de motricité</td><td><button class="row-del" onclick="this.closest('tr').remove()">×</button></td></tr>
+              <tr><td>Jeudi</td><td>19:15–20:45</td><td>Élite</td><td>Sami Bouzid</td><td>Terrain principal</td><td><button class="row-del" onclick="this.closest('tr').remove()">×</button></td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Catégories</h3><a href="#" onclick="openModal('modalCategorie');return false;">+ Ajouter →</a></div>
+          <div class="panel-body" id="categoriesList"></div>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="parent">
+      <p class="compare-intro">Vue mobile simplifiée destinée aux familles — un enfant, un planning, un paiement en deux gestes.</p>
+      <div class="parent-shell">
+        <div class="parent-screen">
+          <div class="p-top">
+            <div class="greet">Bonsoir Nadia</div>
+            <h2>Espace parents</h2>
+          </div>
+          <div class="child-card">
+            <div class="p-avatar">YB</div>
+            <div><b>Yassine Ben Salem</b><span>Groupe U13 · Coach Sami</span></div>
+          </div>
+          <div class="p-sections">
+            <div class="p-card">
+              <h4>Prochain entraînement</h4>
+              <div class="row"><span>Mardi 8 septembre</span><b>17:30</b></div>
+              <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">Terrain principal — prévoir crampons + protège-tibias</div>
+            </div>
+            <div class="p-card">
+              <h4>Progression du mois</h4>
+              <div class="row"><span style="font-size:13px;">Assiduité</span><span class="big">88%</span></div>
+              <div class="progress"><i style="width:88%;"></i></div>
+            </div>
+            <div class="p-card">
+              <h4>Cotisation</h4>
+              <div class="row"><span style="font-size:13px;">Échéance du 05/09</span><span class="big" style="color:var(--red);">280 DT</span></div>
+              <button class="paybtn">Payer maintenant</button>
+            </div>
+          </div>
+          <div class="navdots"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARATIF -->
+    <section class="view" id="compare">
+      <p class="compare-intro">Positionnement par rapport aux plateformes de référence à l'international (ClassForKids, Coacha, Classcard) et dans la région MENA (Tamarran) — pour identifier ce qu'il faut égaler et ce qui différenciera l'académie en Tunisie.</p>
+      <div class="panel">
+        <div class="table-scroll">
+        <table class="cmp">
+          <thead><tr><th>Fonctionnalité</th><th>ClassForKids</th><th>Coacha</th><th>Tamarran (MENA)</th><th>Notre app</th></tr></thead>
+          <tbody>
+            <tr><td>Facturation récurrente + comptes famille (fratrie)</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Paiement en dinar tunisien + moyens locaux (virement, espèces, carte locale)</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Bilingue français / arabe natif (pas de traduction partielle)</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Conformité réglementaire spécifique Tunisie (licence FTF, certificat médical, autorisation parentale, protection des mineurs)</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+            <tr><td>Registre RGPD / consentement image-vidéo horodaté</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">—</td><td class="yes">✓</td></tr>
+            <tr><td>Portail parent dédié (planning, assiduité, paiement)</td><td class="yes">✓</td><td class="attente" style="text-align:center;">Partiel</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Suivi de performance sportive par catégorie d'âge</td><td class="attente" style="text-align:center;">Partiel</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Export comptable pour expert-comptable / commissaire aux comptes</td><td class="no">—</td><td class="no">—</td><td class="attente" style="text-align:center;">Partiel</td><td class="yes">✓</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+      <p class="cmp-note">Les acteurs généralistes (ClassForKids, Coacha) sont solides sur la facturation et la sécurité enfance mais pensés pour le marché britannique : devise, langue et cadre réglementaire ne correspondent pas au contexte tunisien. Tamarran couvre bien la région MENA mais reste multi-sport généraliste. L'écart à combler pour une académie tunisienne : conformité FTF native, dinar tunisien et bilinguisme réel dès la conception — pas ajoutés après coup.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL NOUVEAU JOUEUR -->
+<div class="modal-overlay" id="modalJoueur">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouveau joueur</h3><button class="modal-close" onclick="closeModal('modalJoueur')">×</button></div>
+    <form id="formJoueur">
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field"><label>Prénom</label><input required id="jPrenom"></div>
+          <div class="field"><label>Nom</label><input required id="jNom"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Date de naissance</label><input type="date" required id="jNaissance"></div>
+          <div class="field"><label>Catégorie</label>
+            <select id="jCategorie" required></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Parent référent</label>
+          <select id="jParent" required></select>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Statut paiement</label>
+            <select id="jPaiement">
+              <option value="ok">À jour</option>
+              <option value="attente">Partiel</option>
+              <option value="retard">Retard</option>
+            </select>
+          </div>
+          <div class="field"><label>Certificat médical</label>
+            <select id="jMedical">
+              <option value="ok">Valide</option>
+              <option value="retard">Expiré / manquant</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalJoueur')">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer le joueur</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL NOUVEAU PARENT -->
+<div class="modal-overlay" id="modalParent">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouveau parent</h3><button class="modal-close" onclick="closeModal('modalParent')">×</button></div>
+    <form id="formParent">
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field"><label>Prénom</label><input required id="pPrenom"></div>
+          <div class="field"><label>Nom</label><input required id="pNom"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Téléphone</label><input required id="pTel" placeholder="+216 XX XXX XXX"></div>
+          <div class="field"><label>Email</label><input type="email" id="pEmail"></div>
+        </div>
+        <label class="field-check"><input type="checkbox" id="pRgpd" checked>Consentement RGPD / droit à l'image donné</label>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalParent')">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer le parent</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL NOUVEL ENTRAÎNEUR -->
+<div class="modal-overlay" id="modalCoach">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouvel entraîneur</h3><button class="modal-close" onclick="closeModal('modalCoach')">×</button></div>
+    <form id="formCoach">
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field"><label>Prénom</label><input required id="coPrenom"></div>
+          <div class="field"><label>Nom</label><input required id="coNom"></div>
+        </div>
+        <div class="field"><label>Spécialité / diplôme</label><input id="coSpecialite" placeholder="Ex. CAF B, entraîneur gardiens…"></div>
+        <div class="field"><label>Téléphone</label><input id="coTel" placeholder="+216 XX XXX XXX"></div>
+        <div class="field">
+          <label>Catégories encadrées</label>
+          <div id="coachCategories" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalCoach')">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer l'entraîneur</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL NOUVEAU CRENEAU -->
+<div class="modal-overlay" id="modalCreneau">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouveau créneau d'entraînement</h3><button class="modal-close" onclick="closeModal('modalCreneau')">×</button></div>
+    <form id="formCreneau">
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field"><label>Jour</label>
+            <select id="slotJour" required>
+              <option>Lundi</option><option>Mardi</option><option>Mercredi</option><option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option>
+            </select>
+          </div>
+          <div class="field"><label>Catégorie</label><select id="slotCategorie" required></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Heure de début</label><input type="time" id="slotDebut" required></div>
+          <div class="field"><label>Heure de fin</label><input type="time" id="slotFin" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Entraîneur</label><select id="slotCoach" required></select></div>
+          <div class="field"><label>Terrain / salle</label><input id="slotTerrain" placeholder="Terrain principal…"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalCreneau')">Annuler</button>
+        <button type="submit" class="btn btn-primary">Ajouter le créneau</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL NOUVELLE CATEGORIE -->
+<div class="modal-overlay" id="modalCategorie">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouvelle catégorie</h3><button class="modal-close" onclick="closeModal('modalCategorie')">×</button></div>
+    <form id="formCategorie">
+      <div class="modal-body">
+        <div class="field"><label>Nom de la catégorie</label><input required id="catNom" placeholder="Ex. U11"></div>
+        <div class="field"><label>Tranche d'âge / description</label><input id="catTranche" placeholder="Ex. Nés en 2014-2015 · Formation"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalCategorie')">Annuler</button>
+        <button type="submit" class="btn btn-primary">Ajouter la catégorie</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const links = document.querySelectorAll('.nav-link');
+  const titles = {
+    dashboard:'Tableau de bord', joueurs:'Joueurs', paiements:'Paiements',
+    calendrier:'Entraînements', entraineurs:'Entraîneurs', parametres:'Catégories & créneaux',
+    parent:'Portail parents', compare:'Comparatif marché'
+  };
+  function showView(id){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    links.forEach(l=>l.classList.toggle('active', l.dataset.view===id));
+    document.getElementById('pageTitle').textContent = titles[id];
+  }
+  links.forEach(l=>l.addEventListener('click',()=>{
+    showView(l.dataset.view);
+    closeSide();
+  }));
+
+  // ---- Menu mobile (hamburger / drawer) ----
+  const sideEl = document.querySelector('.side');
+  const overlayEl = document.getElementById('sideOverlay');
+  const hamburgerEl = document.getElementById('hamburger');
+  function openSide(){ sideEl.classList.add('open'); overlayEl.classList.add('active'); }
+  function closeSide(){ sideEl.classList.remove('open'); overlayEl.classList.remove('active'); }
+  hamburgerEl.addEventListener('click', ()=>{
+    sideEl.classList.contains('open') ? closeSide() : openSide();
+  });
+  overlayEl.addEventListener('click', closeSide);
+
+  // ---- Modales ----
+  function openModal(id){ document.getElementById(id).classList.add('active'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+  document.querySelectorAll('.modal-overlay').forEach(ov=>{
+    ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(ov.id); });
+  });
+
+  // ---- Parents (liste en mémoire) ----
+  let parents = ['Salah Trabelsi','Nadia Ben Salem','Riadh Karoui','Amel Gharbi','Fathi Bouazizi'];
+  function refreshParentSelect(preselect){
+    const sel = document.getElementById('jParent');
+    sel.innerHTML = parents.map(p=>`<option value="${p}">${p}</option>`).join('');
+    if(preselect) sel.value = preselect;
+  }
+  refreshParentSelect();
+
+  document.getElementById('formParent').addEventListener('submit', function(e){
+    e.preventDefault();
+    const nom = (document.getElementById('pPrenom').value.trim()+' '+document.getElementById('pNom').value.trim()).trim();
+    if(nom && !parents.includes(nom)) parents.push(nom);
+    refreshParentSelect(nom);
+    this.reset();
+    document.getElementById('pRgpd').checked = true;
+    closeModal('modalParent');
+  });
+
+  // ---- Joueurs ----
+  function initials(prenom,nom){ return ((prenom[0]||'')+(nom[0]||'')).toUpperCase(); }
+
+  document.getElementById('formJoueur').addEventListener('submit', function(e){
+    e.preventDefault();
+    const prenom = document.getElementById('jPrenom').value.trim();
+    const nom = document.getElementById('jNom').value.trim();
+    const naissance = document.getElementById('jNaissance').value;
+    const annee = naissance ? naissance.split('-')[0] : '—';
+    const cat = document.getElementById('jCategorie').value;
+    const parent = document.getElementById('jParent').value;
+    const paiement = document.getElementById('jPaiement').value;
+    const medical = document.getElementById('jMedical').value;
+    const paiementLabel = {ok:'À jour', attente:'Partiel', retard:'Retard'}[paiement];
+    const medicalLabel = {ok:'Valide', retard:'Expiré / manquant'}[medical];
+
+    const tr = document.createElement('tr');
+    tr.dataset.cat = cat;
+    tr.innerHTML = `<td><div class="player"><div class="p-avatar">${initials(prenom,nom)}</div><div class="p-name"><b>${prenom} ${nom}</b><span>Né en ${annee}</span></div></div></td>
+      <td>${cat}</td><td>${parent}</td>
+      <td><span class="pill ${paiement}">${paiementLabel}</span></td>
+      <td><span class="pill ${medical}">${medicalLabel}</span></td>
+      <td>—</td>`;
+    document.getElementById('playersBody').appendChild(tr);
+
+    this.reset();
+    closeModal('modalJoueur');
+    showView('joueurs');
+    applyFilters();
+  });
+
+  // ---- Catégories (en mémoire) ----
+  let categories = [
+    {name:'U9', tranche:'Nés en 2016-2017 · Formation'},
+    {name:'U13', tranche:'Nés en 2012-2013 · Perfectionnement'},
+    {name:'U17', tranche:'Nés en 2008-2009 · Pré-nationale'},
+    {name:'Élite', tranche:'Sélection renforcée, tous âges'}
+  ];
+  function renderCategories(){
+    document.getElementById('categoriesList').innerHTML = categories.map(c=>
+      `<div class="alert-row"><div><b>${c.name}</b><div class="sub">${c.tranche}</div></div><button class="row-del" style="margin-left:auto;" onclick="removeCategory('${c.name}')">×</button></div>`
+    ).join('');
+  }
+  function removeCategory(name){
+    categories = categories.filter(c=>c.name!==name);
+    renderCategories();
+    refreshCategorySelects();
+  }
+  function refreshCategorySelects(){
+    const opts = categories.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+    document.getElementById('jCategorie').innerHTML = opts;
+    document.getElementById('slotCategorie').innerHTML = opts;
+    document.getElementById('coachCategories').innerHTML = categories.map(c=>
+      `<label class="field-check"><input type="checkbox" value="${c.name}">${c.name}</label>`
+    ).join('');
+  }
+  renderCategories();
+  refreshCategorySelects();
+
+  document.getElementById('formCategorie').addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = document.getElementById('catNom').value.trim();
+    const tranche = document.getElementById('catTranche').value.trim() || 'Tranche d\'âge à définir';
+    if(name && !categories.some(c=>c.name===name)){
+      categories.push({name, tranche});
+      renderCategories();
+      refreshCategorySelects();
+    }
+    this.reset();
+    closeModal('modalCategorie');
+    showView('parametres');
+  });
+
+  // ---- Entraîneurs (en mémoire) ----
+  let coaches = ['Karim Amri','Sami Bouzid','Wassim Herzi'];
+  function refreshCoachSelect(){
+    document.getElementById('slotCoach').innerHTML = coaches.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+  refreshCoachSelect();
+
+  document.getElementById('formCoach').addEventListener('submit', function(e){
+    e.preventDefault();
+    const prenom = document.getElementById('coPrenom').value.trim();
+    const nom = document.getElementById('coNom').value.trim();
+    const fullName = (prenom+' '+nom).trim();
+    const specialite = document.getElementById('coSpecialite').value.trim();
+    const tel = document.getElementById('coTel').value.trim();
+    const cats = Array.from(document.querySelectorAll('#coachCategories input:checked')).map(i=>i.value);
+
+    coaches.push(fullName);
+    refreshCoachSelect();
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><div class="player"><div class="p-avatar">${initials(prenom,nom)}</div><div class="p-name"><b>${fullName}</b><span>${specialite||'—'}</span></div></div></td>
+      <td>${specialite||'—'}</td><td>${cats.join(', ')||'—'}</td><td>${tel||'—'}</td><td><span class="pill ok">Actif</span></td>`;
+    document.getElementById('coachesBody').appendChild(tr);
+
+    this.reset();
+    closeModal('modalCoach');
+    showView('entraineurs');
+  });
+
+  document.getElementById('coachSearch').addEventListener('input', function(){
+    const term = this.value.trim().toLowerCase();
+    document.querySelectorAll('#coachesBody tr').forEach(tr=>{
+      tr.style.display = !term || tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+    });
+  });
+
+  // ---- Créneaux d'entraînement (en mémoire) ----
+  document.getElementById('formCreneau').addEventListener('submit', function(e){
+    e.preventDefault();
+    const jour = document.getElementById('slotJour').value;
+    const debut = document.getElementById('slotDebut').value;
+    const fin = document.getElementById('slotFin').value;
+    const cat = document.getElementById('slotCategorie').value;
+    const coach = document.getElementById('slotCoach').value;
+    const terrain = document.getElementById('slotTerrain').value.trim() || '—';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${jour}</td><td>${debut}–${fin}</td><td>${cat}</td><td>${coach}</td><td>${terrain}</td><td><button class="row-del" onclick="this.closest('tr').remove()">×</button></td>`;
+    document.getElementById('slotsBody').appendChild(tr);
+
+    this.reset();
+    closeModal('modalCreneau');
+    showView('parametres');
+  });
+
+  // ---- Filtrage (recherche + catégorie) ----
+  let activeCat = 'Tous';
+  const searchInput = document.getElementById('joueurSearch');
+  const chipEls = document.querySelectorAll('#catFilters .chip');
+
+  chipEls.forEach(c=>c.addEventListener('click', ()=>{
+    chipEls.forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    activeCat = c.dataset.cat;
+    applyFilters();
+  }));
+  searchInput.addEventListener('input', applyFilters);
+
+  function applyFilters(){
+    const term = searchInput.value.trim().toLowerCase();
+    document.querySelectorAll('#playersBody tr').forEach(tr=>{
+      const cat = tr.dataset.cat || '';
+      const matchesCat = activeCat==='Tous' || cat===activeCat;
+      const matchesTerm = !term || tr.textContent.toLowerCase().includes(term);
+      tr.style.display = (matchesCat && matchesTerm) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

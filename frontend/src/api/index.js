@@ -1,0 +1,16 @@
+export { dashboardApi } from './dashboard';
+export { statsApi } from './stats';
+export { playersApi } from './players';
+export { parentsApi } from './parents';
+export { paymentsApi } from './payments';
+export { coachesApi } from './coaches';
+export { categoriesApi } from './categories';
+export { slotsApi } from './slots';
+export { documentsApi } from './documents';
+export { notificationsApi } from './notifications';
+export { auditApi } from './audit';
+export { rgpdApi } from './rgpd';
+export { reportsApi } from './reports';
+export { authApi } from './auth';
+export { presencesApi } from './presences';
+export { eventsApi } from './events';

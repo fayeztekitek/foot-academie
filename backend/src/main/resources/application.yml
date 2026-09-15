@@ -1,0 +1,120 @@
+spring:
+  application:
+    name: nadi-api
+
+  profiles:
+    active: dev
+
+  aop:
+    proxy-target-class: true
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+---
+# DEV profile — H2
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:h2:file:./data/nadi-dev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+---
+# PROD profile — PostgreSQL
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:nadi}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:nadi}
+    password: ${DB_PASSWORD:nadi}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+---
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:myDefaultSecretKeyForDevelopmentOnlyDoNotUseInProduction2024!}
+  access-token-expiration-ms: 3600000    # 1 hour
+  refresh-token-expiration-ms: 604800000 # 7 days
+
+---
+# Billing Configuration
+billing:
+  plans:
+    FREE:
+      max-joueurs: 10
+      max-coachs: 2
+      max-parents: 20
+      montant-mensuel: 0
+      devise: TND
+    PRO:
+      max-joueurs: 100
+      max-coachs: 10
+      max-parents: 500
+      montant-mensuel: 99
+      devise: TND
+    PREMIUM:
+      max-joueurs: 999
+      max-coachs: 99
+      max-parents: 9999
+      montant-mensuel: 249
+      devise: TND
+
+---
+# Firebase (disabled by default, enable with firebase.enabled=true)
+firebase:
+  enabled: false
+  credentials-path: firebase-service-account.json
+
+---
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

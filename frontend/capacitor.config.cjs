@@ -1,0 +1,29 @@
+/** @type {import('@capacitor/cli').CapacitorConfig} */
+const config = {
+  appId: 'tn.nadi.academie',
+  appName: 'Nadi',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+    cleartext: true,
+    allowMixedContent: true,
+  },
+  plugins: {
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#122A22',
+    },
+    Keyboard: {
+      resize: 'body',
+      style: 'DARK',
+    },
+  },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+    },
+  },
+};
+
+module.exports = config;

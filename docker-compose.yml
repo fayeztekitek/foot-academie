@@ -1,0 +1,38 @@
+version: '2.0'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nadi
+      POSTGRES_USER: nadi
+      POSTGRES_PASSWORD: nadi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  backend:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: nadi
+      DB_USERNAME: nadi
+      DB_PASSWORD: nadi
+      JWT_SECRET: changeThisInProduction
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
