@@ -82,7 +82,7 @@ export default function Layout() {
       {/* Sidebar — desktop always visible, mobile slide-in */}
       <aside
         className={`
-          fixed top-0 left-0 h-full z-50 flex flex-col
+          fixed top-0 left-0 h-full z-[60] flex flex-col
           w-[240px] shrink-0 text-white
           transition-transform duration-250 ease-out
           lg:relative lg:translate-x-0
@@ -195,9 +195,18 @@ export default function Layout() {
             <Menu size={20} className="text-ink" />
           </button>
           <div className="font-bebas text-lg text-pitch-dark tracking-wide">NADI</div>
-          <div className="w-10 h-10 flex items-center justify-center relative">
-            <Bell size={18} className="text-ink-soft" />
-            <NotificationBell />
+          <div className="flex items-center gap-1">
+            <div className="w-9 h-9 flex items-center justify-center relative rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <Bell size={18} className="text-ink-soft" />
+              <NotificationBell />
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-ink-soft"
+              aria-label="Déconnexion"
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
 
@@ -210,7 +219,7 @@ export default function Layout() {
       </main>
 
       {/* Mobile bottom navigation */}
-      <nav className="bottom-nav" role="navigation" aria-label="Navigation mobile">
+      <nav className={`bottom-nav ${sidebarOpen ? 'hidden' : ''}`} role="navigation" aria-label="Navigation mobile">
         {filteredBottomNav.map(item => (
           <NavLink
             key={item.to}

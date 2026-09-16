@@ -281,15 +281,20 @@ h1, h2, h3, .num, .logo-word {
     border-top: 1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom);
     box-shadow: 0 -2px 8px rgba(0,0,0,.06);
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .bottom-nav-item {
-    @apply flex flex-col items-center justify-center gap-0.5 py-2 px-1 text-[10px] font-medium;
+    @apply flex flex-col items-center justify-center gap-0.5 py-2 px-2 text-[10px] font-medium;
     color: var(--ink-muted);
     min-width: 0;
     flex: 1;
+    min-width: 56px;
     transition: color var(--transition);
     -webkit-tap-highlight-color: transparent;
     cursor: pointer;
+    white-space: nowrap;
   }
   .bottom-nav-item.active { color: var(--grass); }
   .bottom-nav-item svg { width: 22px; height: 22px; }
