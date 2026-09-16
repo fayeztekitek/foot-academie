@@ -109,6 +109,18 @@ firebase:
   credentials-path: firebase-service-account.json
 
 ---
+# AI Configuration
+ai:
+  provider: ${AI_PROVIDER:mimo}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:mimo-v2-pro}
+  base-url: ${AI_BASE_URL:https://api.mimo-v2.com/v1}
+  max-tokens: ${AI_MAX_TOKENS:2048}
+  temperature: ${AI_TEMPERATURE:0.7}
+  rate-limit-per-minute: ${AI_RATE_LIMIT:20}
+  ollama-url: ${AI_OLLAMA_URL:http://localhost:11434}
+
+---
 # Actuator
 management:
   endpoints:

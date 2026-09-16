@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDemo } from '../demo/DemoProvider';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import NotificationBell from './NotificationBell';
+import ChatWidget from './ai/ChatWidget';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { LayoutDashboard, Users, UserCog, CreditCard, Calendar, GraduationCap, FolderOpen, Upload, Menu, X, LogOut, Bell, Smartphone, ClipboardCheck, Trophy, Building2, BarChart3, Mail, Shield } from 'lucide-react';
 
@@ -224,6 +225,9 @@ export default function Layout() {
           </NavLink>
         ))}
       </nav>
+
+      {/* AI Chat Widget */}
+      <ChatWidget currentPage={location.pathname} />
     </div>
   );
 }
