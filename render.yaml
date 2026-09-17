@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: nadi-foot-academie
+    runtime: image
+    image:
+      url: ghcr.io/fayeztekitek/foot-academie/backend:latest
+    plan: free
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
+        fromDatabase:
+          name: nadi-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: nadi-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: nadi-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: nadi-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: nadi-db
+          property: password
+      - key: JWT_SECRET
+        sync: false
+      - key: AI_PROVIDER
+        value: openai
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gemini-3.6-flash
+      - key: AI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: AI_MAX_TOKENS
+        value: "2048"
+      - key: AI_TEMPERATURE
+        value: "0.7"
+      - key: AI_RATE_LIMIT
+        value: "20"
+      - key: JAVA_OPTS
+        value: "-Xms256m -Xmx512m"
+    healthCheckPath: /api/actuator/health
+    autoDeploy: false
+
+databases:
+  - name: nadi-db
+    plan: free
+    databaseName: nadi
+    user: nadi
