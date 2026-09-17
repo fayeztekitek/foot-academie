@@ -18,6 +18,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
+      disableDemo();
       await login(email, motDePasse);
     } catch (err) {
       setError(err.response?.data?.message || 'Identifiants incorrects');

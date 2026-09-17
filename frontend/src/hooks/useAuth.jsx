@@ -37,6 +37,7 @@ export function AuthProvider({ children }) {
       setUser({ token: data.accessToken, role: data.role, email: data.email, mustChangePassword: false });
       return data;
     }
+    localStorage.removeItem('nadi_demo_mode');
     const { data } = await authApi.login(email, password);
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
