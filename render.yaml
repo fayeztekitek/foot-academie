@@ -3,7 +3,7 @@ services:
     name: nadi-foot-academie
     runtime: image
     image:
-      url: ghcr.io/fayeztekitek/foot-academie/backend:latest
+      url: docker.io/fayez1234/nadi-backend:latest
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE
