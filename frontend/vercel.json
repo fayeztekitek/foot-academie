@@ -1,8 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "VITE_API_URL=https://nadi-foot-academie.onrender.com/api npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "env": {
-    "VITE_API_URL": "https://nadi-foot-academie.onrender.com/api"
-  }
+  "framework": "vite"
 }
