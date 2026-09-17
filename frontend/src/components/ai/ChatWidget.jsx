@@ -106,7 +106,7 @@ export default function ChatWidget({ currentPage }) {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-[70] w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-105 active:scale-95"
         style={{ minHeight: '44px', minWidth: '44px' }}
         aria-label="Assistant IA Nadi"
       >
@@ -115,7 +115,7 @@ export default function ChatWidget({ currentPage }) {
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-40 right-4 md:bottom-20 md:right-6 z-50 w-[calc(100vw-2rem)] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+        <div className="fixed bottom-40 right-4 md:bottom-20 md:right-6 z-[70] w-[calc(100vw-2rem)] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
              style={{ maxHeight: 'calc(100vh - 12rem)' }}>
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-3 flex items-center justify-between">

@@ -23,7 +23,8 @@ public class OpenAiProvider implements AiProvider {
     public OpenAiProvider(AiConfig config) {
         this.config = config;
         this.webClient = WebClient.builder()
-            .baseUrl("https://api.openai.com/v1")
+            .baseUrl(config.getBaseUrl() != null && !config.getBaseUrl().isEmpty()
+                ? config.getBaseUrl() : "https://api.openai.com/v1")
             .defaultHeader("Authorization", "Bearer " + config.getApiKey())
             .defaultHeader("Content-Type", "application/json")
             .codecs(c -> c.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))

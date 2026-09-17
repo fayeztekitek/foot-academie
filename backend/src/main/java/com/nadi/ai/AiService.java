@@ -61,7 +61,13 @@ public class AiService {
             String fullPrompt = systemPrompt + "\n\n" + context;
             List<Map<String, Object>> tools = toolRegistry.getToolsForRole(role);
 
-            String response = provider.chatWithTools(fullPrompt, message, history, tools);
+            String response;
+            if (tools != null && tools.size() > 3) {
+                List<Map<String, Object>> limitedTools = tools.subList(0, 3);
+                response = provider.chatWithTools(fullPrompt, message, history, limitedTools);
+            } else {
+                response = provider.chatWithTools(fullPrompt, message, history, tools);
+            }
 
             if (isToolCall(response)) {
                 return handleToolCall(userId, response, message, fullPrompt, history, role);
@@ -130,6 +136,9 @@ public class AiService {
                 String argsStr = tc.path("function").path("arguments").asText("{}");
                 Map<String, Object> args = mapper.readValue(argsStr, new TypeReference<>() {});
                 String toolResult = toolExecutor.execute(toolName, args);
+                if (toolResult.length() > 2000) {
+                    toolResult = toolResult.substring(0, 2000) + "... (données tronquées)";
+                }
                 results.append("Résultat de ").append(toolName).append(": ").append(toolResult).append("\n");
             }
 
