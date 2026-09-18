@@ -44,6 +44,9 @@ public class Entraineur {
     @Column(nullable = false)
     private String email;
 
+    @Column(columnDefinition = "TEXT")
+    private String photoUrl;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "entraineur_categorie",

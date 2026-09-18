@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { playersApi, categoriesApi, parentsApi, presencesApi } from '../api';
 import { Search, Plus, X, Pencil, Trash2, Check, FileCheck } from 'lucide-react';
+import { PhotoUpload, PhotoAvatar } from '../components/PhotoUpload';
 
 const FREQ_LABELS = { MENSUEL: 'Mensuel', TRIMESTRIEL: 'Trimestriel', SEMESTRIEL: 'Semestriel', ANNUEL: 'Annuel' };
 const FREQ_AMOUNTS = { MENSUEL: '60', TRIMESTRIEL: '180', SEMESTRIEL: '360', ANNUEL: '720' };
@@ -26,7 +27,7 @@ function PaymentPill({ statut }) {
   return <span className={s.cls}>{s.label}</span>;
 }
 
-const EMPTY_FORM = { prenom: '', nom: '', dateNaissance: '', dateEntree: '', categorieId: '', parentId: '', frequence: 'MENSUEL', certificatMedical: false, autorisationParentale: false };
+const EMPTY_FORM = { prenom: '', nom: '', dateNaissance: '', dateEntree: '', categorieId: '', parentId: '', frequence: 'MENSUEL', certificatMedical: false, autorisationParentale: false, photoUrl: '' };
 
 export default function Players() {
   const queryClient = useQueryClient();
@@ -113,6 +114,7 @@ export default function Players() {
       frequence: p.frequence || 'MENSUEL',
       certificatMedical: p.certificatMedical || false,
       autorisationParentale: p.autorisationParentale || false,
+      photoUrl: p.photoUrl || '',
     });
     setShowEditModal(p);
   };
@@ -175,7 +177,7 @@ export default function Players() {
                 <tr key={p.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors" style={{ borderColor: '#F0EEE4' }}>
                   <td className="py-3 px-5" data-label="Joueur">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-avatar">{getInitials(p.prenom, p.nom)}</div>
+                      <PhotoAvatar photoUrl={p.photoUrl} prenom={p.prenom} nom={p.nom} />
                       <div>
                         <div className="text-[13.5px] font-semibold">{p.prenom} {p.nom}</div>
                         <div className="text-[11.5px]" style={{ color: 'var(--ink-soft)' }}>Né en {getBirthYear(p.dateNaissance)}</div>
@@ -267,6 +269,12 @@ export default function Players() {
               <button onClick={() => { setShowCreateModal(false); setShowEditModal(null); }} className="text-xl cursor-pointer p-1" style={{ color: 'var(--ink-soft)' }}><X size={20} /></button>
             </div>
             <div className="px-6 py-5 flex flex-col gap-3.5 overflow-y-auto">
+              <PhotoUpload
+                value={form.photoUrl}
+                onChange={(v) => setForm({...form, photoUrl: v || ''})}
+                prenom={form.prenom}
+                nom={form.nom}
+              />
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="label">Prénom</label>

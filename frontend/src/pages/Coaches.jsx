@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coachesApi, categoriesApi } from '../api';
 import { Search, Plus, X, Pencil, Trash2 } from 'lucide-react';
+import { PhotoUpload, PhotoAvatar } from '../components/PhotoUpload';
 
 function getInitials(prenom, nom) {
   return ((prenom?.[0] || '') + (nom?.[0] || '')).toUpperCase();
 }
 
-const EMPTY_FORM = { prenom: '', nom: '', specialite: '', telephone: '', email: '', categorieIds: [] };
+const EMPTY_FORM = { prenom: '', nom: '', specialite: '', telephone: '', email: '', categorieIds: [], photoUrl: '' };
 
 export default function Coaches() {
   const queryClient = useQueryClient();
@@ -72,6 +73,7 @@ export default function Coaches() {
       telephone: c.telephone || '',
       email: c.email || '',
       categorieIds: c.categories?.map(cat => cat.id) || [],
+      photoUrl: c.photoUrl || '',
     });
     setShowEditModal(c);
   };
@@ -133,7 +135,7 @@ export default function Coaches() {
                 <tr key={c.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors" style={{ borderColor: '#F0EEE4' }}>
                   <td className="py-3 px-5" data-label="Entraîneur">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-avatar">{getInitials(c.prenom, c.nom)}</div>
+                      <PhotoAvatar photoUrl={c.photoUrl} prenom={c.prenom} nom={c.nom} />
                       <div>
                         <div className="text-[13.5px] font-semibold">{c.prenom} {c.nom}</div>
                         <div className="text-[11.5px]" style={{ color: 'var(--ink-soft)' }}>{c.specialite || '—'}</div>
@@ -185,6 +187,12 @@ export default function Coaches() {
               <button onClick={() => { setShowCreateModal(false); setShowEditModal(null); }} className="text-xl cursor-pointer p-1" style={{ color: 'var(--ink-soft)' }}><X size={20} /></button>
             </div>
             <div className="px-6 py-5 flex flex-col gap-3.5 overflow-y-auto">
+              <PhotoUpload
+                value={form.photoUrl}
+                onChange={(v) => setForm({...form, photoUrl: v || ''})}
+                prenom={form.prenom}
+                nom={form.nom}
+              />
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="label">Prénom</label>

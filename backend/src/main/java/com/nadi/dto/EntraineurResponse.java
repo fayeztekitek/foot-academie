@@ -20,6 +20,7 @@ public class EntraineurResponse {
     private String specialite;
     private String telephone;
     private String email;
+    private String photoUrl;
     private List<CategorieResponse> categories;
     private Long utilisateurId;
     private String motDePasse;

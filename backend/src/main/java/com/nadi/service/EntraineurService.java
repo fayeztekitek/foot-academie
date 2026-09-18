@@ -74,6 +74,7 @@ public class EntraineurService {
                 .specialite(request.getSpecialite())
                 .telephone(request.getTelephone())
                 .email(request.getEmail())
+                .photoUrl(request.getPhotoUrl())
                 .categories(categories)
                 .build();
         entraineur = entraineurRepository.save(entraineur);
@@ -107,6 +108,7 @@ public class EntraineurService {
         entraineur.setSpecialite(request.getSpecialite());
         entraineur.setTelephone(request.getTelephone());
         entraineur.setEmail(request.getEmail());
+        entraineur.setPhotoUrl(request.getPhotoUrl());
 
         if (request.getCategorieIds() != null) {
             Set<Categorie> categories = request.getCategorieIds().stream()
@@ -144,6 +146,7 @@ public class EntraineurService {
                 .specialite(e.getSpecialite())
                 .telephone(e.getTelephone())
                 .email(e.getEmail())
+                .photoUrl(e.getPhotoUrl())
                 .categories(cats)
                 .utilisateurId(e.getUtilisateur() != null ? e.getUtilisateur().getId() : null)
                 .createdAt(e.getCreatedAt())

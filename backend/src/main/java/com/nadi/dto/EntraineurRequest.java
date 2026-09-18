@@ -20,5 +20,7 @@ public class EntraineurRequest {
 
     private String email;
 
+    private String photoUrl;
+
     private Set<Long> categorieIds;
 }
