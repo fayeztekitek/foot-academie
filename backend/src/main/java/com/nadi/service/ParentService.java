@@ -28,6 +28,7 @@ public class ParentService {
     private final ParentRepository parentRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Transactional(readOnly = true)
     public Page<ParentResponse> getAll(Pageable pageable) {
@@ -86,6 +87,17 @@ public class ParentService {
 
         ParentResponse response = toResponse(parent);
         response.setMotDePasse(motDePasse);
+
+        if (motDePasse != null && request.getEmail() != null && !request.getEmail().isBlank()) {
+            emailService.sendParentCredentials(
+                request.getEmail(),
+                request.getPrenom(),
+                request.getNom(),
+                request.getEmail(),
+                motDePasse
+            );
+        }
+
         return response;
     }
 
