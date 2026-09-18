@@ -43,6 +43,7 @@ export default defineConfig({
           {
             urlPattern: /^https?:\/\/.*\/api\/(slots|categories|players|coaches|dashboard|parents\/me).*/,
             handler: 'NetworkFirst',
+            method: 'GET',
             options: {
               cacheName: 'api-read-cache',
               expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
@@ -52,6 +53,7 @@ export default defineConfig({
           {
             urlPattern: /^https?:\/\/.*\/api\/notifications.*/,
             handler: 'NetworkFirst',
+            method: 'GET',
             options: {
               cacheName: 'notifications-cache',
               expiration: { maxEntries: 50, maxAgeSeconds: 1800 },

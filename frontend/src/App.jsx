@@ -25,7 +25,16 @@ import Rgpd from './pages/Rgpd';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false }
+    queries: { retry: 1, refetchOnWindowFocus: false },
+    mutations: {
+      onError: (error) => {
+        const msg = error?.response?.data?.message || error?.message || 'Une erreur est survenue';
+        console.error('[Mutation error]', msg);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('nadi-toast', { detail: { type: 'error', message: msg } }));
+        }
+      }
+    }
   }
 });
 
