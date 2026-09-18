@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { parentsApi } from '../api';
-import { Search, Plus, X, Pencil, Trash2, Key } from 'lucide-react';
+import { Search, Plus, X, Pencil, Trash2, Key, MessageCircle } from 'lucide-react';
 
 function getInitials(prenom, nom) {
   return ((prenom?.[0] || '') + (nom?.[0] || '')).toUpperCase();
@@ -34,6 +34,9 @@ export default function Parents() {
       setForm(EMPTY_FORM);
       if (response.data?.motDePasse) {
         setCreatedCredentials({
+          prenom: form.prenom,
+          nom: form.nom,
+          telephone: form.telephone,
           email: form.email,
           motDePasse: response.data.motDePasse,
         });
@@ -264,7 +267,26 @@ export default function Parents() {
                 <div className="text-sm mt-1"><strong>Mot de passe :</strong> <span className="font-mono font-bold" style={{ color: 'var(--pitch-dark)' }}>{createdCredentials.motDePasse}</span></div>
               </div>
             </div>
-            <div className="flex justify-end px-6 py-3.5 border-t" style={{ borderColor: 'var(--line)' }}>
+            <div className="flex justify-end gap-2 px-6 py-3.5 border-t" style={{ borderColor: 'var(--line)' }}>
+              {createdCredentials.telephone && (
+                <a
+                  href={`https://wa.me/${createdCredentials.telephone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                    `Bonjour ${createdCredentials.prenom} ${createdCredentials.nom},\n\n` +
+                    `Votre compte Nadi Académie a été créé.\n\n` +
+                    `Email : ${createdCredentials.email}\n` +
+                    `Mot de passe : ${createdCredentials.motDePasse}\n\n` +
+                    `Pour des raisons de sécurité, vous devrez changer votre mot de passe lors de votre première connexion.\n\n` +
+                    `Connectez-vous sur : https://frontend-theta-navy-p2kodej171.vercel.app/login`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  style={{ background: '#25D366' }}
+                >
+                  <MessageCircle size={16} />
+                  WhatsApp
+                </a>
+              )}
               <button onClick={() => setCreatedCredentials(null)} className="btn-primary text-sm">Fermer</button>
             </div>
           </div>
