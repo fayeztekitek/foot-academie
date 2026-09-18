@@ -183,14 +183,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t" style={{ borderColor: 'var(--line)' }}>
-            <p className="text-xs mb-2" style={{ color: 'var(--ink-soft)' }}>Comptes de démonstration :</p>
-            <div className="flex flex-col gap-1 text-xs font-mono" style={{ color: 'var(--ink-soft)' }}>
-              <div><strong>Admin:</strong> admin@nadi.tn / admin123</div>
-              <div><strong>Coach:</strong> coach@nadi.tn / coach123</div>
-              <div><strong>Parent:</strong> parent@nadi.tn / parent123</div>
-            </div>
-          </div>
+
         </div>
 
         {/* Demo mode card */}
