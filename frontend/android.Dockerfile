@@ -3,7 +3,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
+ENV VITE_API_URL=https://nadi-foot-academie.onrender.com/api
 RUN npm run build
+
 
 FROM eclipse-temurin:17-jdk AS android-builder
 
