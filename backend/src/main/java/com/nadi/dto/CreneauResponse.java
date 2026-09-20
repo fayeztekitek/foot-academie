@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -23,6 +24,17 @@ public class CreneauResponse {
     private Long entraineurId;
     private String entraineurNom;
     private String entraineurPrenom;
+    private List<EntraineurInfo> entraineurs;
     private String terrain;
     private LocalDateTime createdAt;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class EntraineurInfo {
+        private Long id;
+        private String nom;
+        private String prenom;
+    }
 }

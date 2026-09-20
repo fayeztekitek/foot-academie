@@ -10,6 +10,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "creneau",
@@ -42,8 +46,17 @@ public class Creneau {
     private Categorie categorie;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entraineur_id", nullable = false)
+    @JoinColumn(name = "entraineur_id")
     private Entraineur entraineur;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "creneau_entraineur",
+        joinColumns = @JoinColumn(name = "creneau_id"),
+        inverseJoinColumns = @JoinColumn(name = "entraineur_id")
+    )
+    @Builder.Default
+    private Set<Entraineur> entraineurs = new HashSet<>();
 
     @Column(nullable = false)
     private String terrain;

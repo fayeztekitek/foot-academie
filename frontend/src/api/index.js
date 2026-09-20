@@ -14,3 +14,4 @@ export { reportsApi } from './reports';
 export { authApi } from './auth';
 export { presencesApi } from './presences';
 export { eventsApi } from './events';
+export { notesApi } from './notes';

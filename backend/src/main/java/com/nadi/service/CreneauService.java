@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,7 +54,24 @@ public class CreneauService {
 
     @Transactional(readOnly = true)
     public List<CreneauResponse> getByEntraineur(Long entraineurId) {
-        return creneauRepository.findByEntraineurId(entraineurId).stream()
+        List<Creneau> creneauxSingle = creneauRepository.findByEntraineurId(entraineurId);
+        List<Creneau> creneauxMultiple = creneauRepository.findByEntraineursId(entraineurId);
+        
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        java.util.List<Creneau> all = new java.util.ArrayList<>();
+        
+        for (Creneau c : creneauxSingle) {
+            if (ids.add(c.getId())) {
+                all.add(c);
+            }
+        }
+        for (Creneau c : creneauxMultiple) {
+            if (ids.add(c.getId())) {
+                all.add(c);
+            }
+        }
+        
+        return all.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -62,21 +81,33 @@ public class CreneauService {
         JourSemaine jour = JourSemaine.valueOf(request.getJourSemaine().toUpperCase());
 
         validateNoOverlap(null, request.getTerrain(), jour, request.getHeureDebut(), request.getHeureFin());
-        validateNoCoachOverlap(null, request.getEntraineurId(), jour, request.getHeureDebut(), request.getHeureFin());
 
         Categorie categorie = categorieRepository.findById(request.getCategorieId())
                 .orElseThrow(() -> new RuntimeException("Catégorie non trouvée: " + request.getCategorieId()));
-        Entraineur entraineur = entraineurRepository.findById(request.getEntraineurId())
-                .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + request.getEntraineurId()));
 
         Creneau creneau = Creneau.builder()
                 .jourSemaine(jour)
                 .heureDebut(request.getHeureDebut())
                 .heureFin(request.getHeureFin())
                 .categorie(categorie)
-                .entraineur(entraineur)
                 .terrain(request.getTerrain())
                 .build();
+
+        Set<Entraineur> entraineurs = new HashSet<>();
+        if (request.getEntraineurIds() != null && !request.getEntraineurIds().isEmpty()) {
+            for (Long entraineurId : request.getEntraineurIds()) {
+                Entraineur entraineur = entraineurRepository.findById(entraineurId)
+                        .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + entraineurId));
+                entraineurs.add(entraineur);
+            }
+            creneau.setEntraineurs(entraineurs);
+        } else if (request.getEntraineurId() != null) {
+            Entraineur entraineur = entraineurRepository.findById(request.getEntraineurId())
+                    .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + request.getEntraineurId()));
+            entraineurs.add(entraineur);
+            creneau.setEntraineurs(entraineurs);
+        }
+
         return toResponse(creneauRepository.save(creneau));
     }
 
@@ -88,19 +119,30 @@ public class CreneauService {
         JourSemaine jour = JourSemaine.valueOf(request.getJourSemaine().toUpperCase());
 
         validateNoOverlap(id, request.getTerrain(), jour, request.getHeureDebut(), request.getHeureFin());
-        validateNoCoachOverlap(id, request.getEntraineurId(), jour, request.getHeureDebut(), request.getHeureFin());
 
         Categorie categorie = categorieRepository.findById(request.getCategorieId())
                 .orElseThrow(() -> new RuntimeException("Catégorie non trouvée: " + request.getCategorieId()));
-        Entraineur entraineur = entraineurRepository.findById(request.getEntraineurId())
-                .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + request.getEntraineurId()));
 
         creneau.setJourSemaine(jour);
         creneau.setHeureDebut(request.getHeureDebut());
         creneau.setHeureFin(request.getHeureFin());
         creneau.setCategorie(categorie);
-        creneau.setEntraineur(entraineur);
         creneau.setTerrain(request.getTerrain());
+
+        Set<Entraineur> entraineurs = new HashSet<>();
+        if (request.getEntraineurIds() != null && !request.getEntraineurIds().isEmpty()) {
+            for (Long entraineurId : request.getEntraineurIds()) {
+                Entraineur entraineur = entraineurRepository.findById(entraineurId)
+                        .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + entraineurId));
+                entraineurs.add(entraineur);
+            }
+        } else if (request.getEntraineurId() != null) {
+            Entraineur entraineur = entraineurRepository.findById(request.getEntraineurId())
+                    .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + request.getEntraineurId()));
+            entraineurs.add(entraineur);
+        }
+        creneau.setEntraineurs(entraineurs);
+
         return toResponse(creneauRepository.save(creneau));
     }
 
@@ -138,6 +180,31 @@ public class CreneauService {
     }
 
     private CreneauResponse toResponse(Creneau c) {
+        List<CreneauResponse.EntraineurInfo> entraineurInfos = c.getEntraineurs() != null ?
+                c.getEntraineurs().stream()
+                        .map(e -> CreneauResponse.EntraineurInfo.builder()
+                                .id(e.getId())
+                                .nom(e.getNom())
+                                .prenom(e.getPrenom())
+                                .build())
+                        .collect(Collectors.toList()) :
+                (c.getEntraineur() != null ?
+                        List.of(CreneauResponse.EntraineurInfo.builder()
+                                .id(c.getEntraineur().getId())
+                                .nom(c.getEntraineur().getNom())
+                                .prenom(c.getEntraineur().getPrenom())
+                                .build()) :
+                        List.of());
+
+        Long premierEntraineurId = null;
+        String premierEntraineurNom = null;
+        String premierEntraineurPrenom = null;
+        if (!entraineurInfos.isEmpty()) {
+            premierEntraineurId = entraineurInfos.get(0).getId();
+            premierEntraineurNom = entraineurInfos.get(0).getNom();
+            premierEntraineurPrenom = entraineurInfos.get(0).getPrenom();
+        }
+
         return CreneauResponse.builder()
                 .id(c.getId())
                 .jourSemaine(c.getJourSemaine().name())
@@ -145,9 +212,10 @@ public class CreneauService {
                 .heureFin(c.getHeureFin())
                 .categorieId(c.getCategorie().getId())
                 .categorieNom(c.getCategorie().getNom())
-                .entraineurId(c.getEntraineur().getId())
-                .entraineurNom(c.getEntraineur().getNom())
-                .entraineurPrenom(c.getEntraineur().getPrenom())
+                .entraineurId(premierEntraineurId)
+                .entraineurNom(premierEntraineurNom)
+                .entraineurPrenom(premierEntraineurPrenom)
+                .entraineurs(entraineurInfos)
                 .terrain(c.getTerrain())
                 .createdAt(c.getCreatedAt())
                 .build();

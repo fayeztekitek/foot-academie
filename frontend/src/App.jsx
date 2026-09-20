@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import Dashboard from './pages/Dashboard';
 import Players from './pages/Players';
+import PlayerDetail from './pages/PlayerDetail';
 import Parents from './pages/Parents';
 import Payments from './pages/Payments';
 import ParentPayments from './pages/ParentPayments';
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route index element={<SuperAdminDashboardWrapper />} />
         <Route path="super-admin" element={<SuperAdminDashboard />} />
         <Route path="players" element={<Players />} />
+        <Route path="players/:id" element={<PlayerDetail />} />
         <Route path="parents" element={<Parents />} />
         <Route path="payments" element={<Payments />} />
         <Route path="my-payments" element={<ParentPayments />} />

@@ -71,6 +71,10 @@ public class JoueurService {
                 .dateNaissance(request.getDateNaissance())
                 .dateEntree(request.getDateEntree() != null ? request.getDateEntree() : LocalDate.now())
                 .photoUrl(request.getPhotoUrl())
+                .postePrincipal(request.getPostePrincipal() != null ? Joueur.PosteFootball.valueOf(request.getPostePrincipal()) : null)
+                .postesSecondaires(request.getPostesSecondaires())
+                .taille(request.getTaille())
+                .poids(request.getPoids())
                 .certificatMedical(Boolean.TRUE.equals(request.getCertificatMedical()))
                 .autorisationParentale(Boolean.TRUE.equals(request.getAutorisationParentale()))
                 .build();
@@ -108,6 +112,19 @@ public class JoueurService {
             joueur.setDateEntree(request.getDateEntree());
         }
         joueur.setPhotoUrl(request.getPhotoUrl());
+
+        if (request.getPostePrincipal() != null && !request.getPostePrincipal().isBlank()) {
+            joueur.setPostePrincipal(Joueur.PosteFootball.valueOf(request.getPostePrincipal()));
+        }
+        if (request.getPostesSecondaires() != null) {
+            joueur.setPostesSecondaires(request.getPostesSecondaires());
+        }
+        if (request.getTaille() != null) {
+            joueur.setTaille(request.getTaille());
+        }
+        if (request.getPoids() != null) {
+            joueur.setPoids(request.getPoids());
+        }
 
         if (request.getCertificatMedical() != null) {
             joueur.setCertificatMedical(request.getCertificatMedical());
@@ -200,6 +217,10 @@ public class JoueurService {
                 .statutPaiement(j.getStatutPaiement().name())
                 .frequence(j.getFrequence() != null ? j.getFrequence().name() : null)
                 .photoUrl(j.getPhotoUrl())
+                .postePrincipal(j.getPostePrincipal() != null ? j.getPostePrincipal().name() : null)
+                .postesSecondaires(j.getPostesSecondaires())
+                .taille(j.getTaille())
+                .poids(j.getPoids())
                 .certificatMedical(j.getCertificatMedical())
                 .autorisationParentale(j.getAutorisationParentale())
                 .moisAVerser(moisAVerser)

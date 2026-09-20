@@ -55,6 +55,16 @@ public class Joueur {
 
     private String photoUrl;
 
+    @Enumerated(EnumType.STRING)
+    private PosteFootball postePrincipal;
+
+    @Column(columnDefinition = "TEXT")
+    private String postesSecondaires;
+
+    private Integer taille;
+
+    private Integer poids;
+
     @Builder.Default
     private Boolean certificatMedical = false;
 
@@ -75,5 +85,16 @@ public class Joueur {
         A_JOUR,
         EN_RETARD,
         IMPAYE
+    }
+
+    public enum PosteFootball {
+        GARDIEN,
+        DEFENSEUR_CENTRAL,
+        DEFENSEUR_LATERAL,
+        MILIEU_DEFENSIF,
+        MILIEU_OFFENSIF,
+        AILIER,
+        ATTAQUANT,
+        BUTOIR
     }
 }

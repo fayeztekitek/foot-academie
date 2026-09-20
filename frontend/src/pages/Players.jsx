@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { playersApi, categoriesApi, parentsApi, presencesApi } from '../api';
 import { Search, Plus, X, Pencil, Trash2, Check, FileCheck } from 'lucide-react';
@@ -6,6 +7,17 @@ import { PhotoUpload, PhotoAvatar } from '../components/PhotoUpload';
 
 const FREQ_LABELS = { MENSUEL: 'Mensuel', TRIMESTRIEL: 'Trimestriel', SEMESTRIEL: 'Semestriel', ANNUEL: 'Annuel' };
 const FREQ_AMOUNTS = { MENSUEL: '60', TRIMESTRIEL: '180', SEMESTRIEL: '360', ANNUEL: '720' };
+
+const POSTES = [
+  { value: 'GARDIEN', label: 'Gardien' },
+  { value: 'DEFENSEUR_CENTRAL', label: 'Défenseur central' },
+  { value: 'DEFENSEUR_LATERAL', label: 'Défenseur latéral' },
+  { value: 'MILIEU_DEFENSIF', label: 'Milieu défensif' },
+  { value: 'MILIEU_OFFENSIF', label: 'Milieu offensif' },
+  { value: 'AILIER', label: 'Ailier' },
+  { value: 'ATTAQUANT', label: 'Attaquant' },
+  { value: 'BUTOIR', label: 'Butoir' },
+];
 
 function getInitials(prenom, nom) {
   return ((prenom?.[0] || '') + (nom?.[0] || '')).toUpperCase();
@@ -27,10 +39,11 @@ function PaymentPill({ statut }) {
   return <span className={s.cls}>{s.label}</span>;
 }
 
-const EMPTY_FORM = { prenom: '', nom: '', dateNaissance: '', dateEntree: '', categorieId: '', parentId: '', frequence: 'MENSUEL', certificatMedical: false, autorisationParentale: false, photoUrl: '' };
+const EMPTY_FORM = { prenom: '', nom: '', dateNaissance: '', dateEntree: '', categorieId: '', parentId: '', frequence: 'MENSUEL', certificatMedical: false, autorisationParentale: false, photoUrl: '', postePrincipal: '', postesSecondaires: [], taille: '', poids: '' };
 
 export default function Players() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [catFilter, setCatFilter] = useState('');
@@ -66,7 +79,12 @@ export default function Players() {
   }
 
   const createMutation = useMutation({
-    mutationFn: (data) => playersApi.create(data),
+    mutationFn: (data) => playersApi.create({
+      ...data,
+      postesSecondaires: data.postesSecondaires.length > 0 ? JSON.stringify(data.postesSecondaires) : null,
+      taille: data.taille ? parseInt(data.taille) : null,
+      poids: data.poids ? parseInt(data.poids) : null,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries(['players']);
       setShowCreateModal(false);
@@ -75,7 +93,12 @@ export default function Players() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => playersApi.update(id, data),
+    mutationFn: ({ id, data }) => playersApi.update(id, {
+      ...data,
+      postesSecondaires: data.postesSecondaires.length > 0 ? JSON.stringify(data.postesSecondaires) : null,
+      taille: data.taille ? parseInt(data.taille) : null,
+      poids: data.poids ? parseInt(data.poids) : null,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries(['players']);
       setShowEditModal(null);
@@ -115,6 +138,10 @@ export default function Players() {
       certificatMedical: p.certificatMedical || false,
       autorisationParentale: p.autorisationParentale || false,
       photoUrl: p.photoUrl || '',
+      postePrincipal: p.postePrincipal || '',
+      postesSecondaires: p.postesSecondaires ? JSON.parse(p.postesSecondaires) : [],
+      taille: p.taille || '',
+      poids: p.poids || '',
     });
     setShowEditModal(p);
   };
@@ -161,7 +188,7 @@ export default function Players() {
           <table className="w-full text-[13.5px] table-responsive">
             <thead>
               <tr>
-                {['Joueur', 'Date entrée', 'Catégorie', 'Parent', 'Paiements', 'Présence', 'Conformité', 'Fréquence', 'Actions'].map(h => (
+                {['Joueur', 'Poste', 'Date entrée', 'Catégorie', 'Parent', 'Paiements', 'Présence', 'Conformité', 'Fréquence', 'Actions'].map(h => (
                   <th key={h} className="text-left text-[11.5px] uppercase tracking-wider py-2.5 px-5 border-b font-semibold" style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}>{h}</th>
                 ))}
               </tr>
@@ -169,20 +196,27 @@ export default function Players() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={9} className="py-3 px-5"><div className="skeleton-row" /></td></tr>
+                  <tr key={i}><td colSpan={10} className="py-3 px-5"><div className="skeleton-row" /></td></tr>
                 ))
               ) : players.length === 0 ? (
-                <tr><td colSpan={9} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun joueur trouvé</td></tr>
+                <tr><td colSpan={10} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun joueur trouvé</td></tr>
               ) : players.map(p => (
                 <tr key={p.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors" style={{ borderColor: '#F0EEE4' }}>
                   <td className="py-3 px-5" data-label="Joueur">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 cursor-pointer hover:opacity-80" onClick={() => navigate(`/players/${p.id}`)}>
                       <PhotoAvatar photoUrl={p.photoUrl} prenom={p.prenom} nom={p.nom} />
                       <div>
-                        <div className="text-[13.5px] font-semibold">{p.prenom} {p.nom}</div>
+                        <div className="text-[13.5px] font-semibold" style={{ color: 'var(--pitch)' }}>{p.prenom} {p.nom}</div>
                         <div className="text-[11.5px]" style={{ color: 'var(--ink-soft)' }}>Né en {getBirthYear(p.dateNaissance)}</div>
                       </div>
                     </div>
+                  </td>
+                  <td className="py-3 px-5 text-[12px]" data-label="Poste">
+                    {p.postePrincipal ? (
+                      <span className="text-[12px] font-medium" style={{ color: 'var(--pitch)' }}>
+                        {POSTES.find(pos => pos.value === p.postePrincipal)?.label || p.postePrincipal}
+                      </span>
+                    ) : '—'}
                   </td>
                   <td className="py-3 px-5 text-[12px]" data-label="Date entrée">
                     {p.dateEntree ? (
@@ -302,6 +336,47 @@ export default function Players() {
                     <option value="">Choisir...</option>
                     {displayCategories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
                   </select>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="label">Poste principal</label>
+                  <select value={form.postePrincipal} onChange={e => setForm({...form, postePrincipal: e.target.value})} className="input-field">
+                    <option value="">Choisir...</option>
+                    {POSTES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="label">Postes secondaires</label>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {POSTES.filter(p => p.value !== form.postePrincipal).map(p => (
+                      <label key={p.value} className="flex items-center gap-1 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.postesSecondaires.includes(p.value)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setForm({...form, postesSecondaires: [...form.postesSecondaires, p.value]});
+                            } else {
+                              setForm({...form, postesSecondaires: form.postesSecondaires.filter(v => v !== p.value)});
+                            }
+                          }}
+                          className="w-3 h-3 rounded accent-[var(--pitch)]"
+                        />
+                        <span>{p.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="label">Taille (cm)</label>
+                  <input type="number" value={form.taille} onChange={e => setForm({...form, taille: e.target.value})} className="input-field" placeholder="Ex: 145" min="50" max="250" />
+                </div>
+                <div className="flex-1">
+                  <label className="label">Poids (kg)</label>
+                  <input type="number" value={form.poids} onChange={e => setForm({...form, poids: e.target.value})} className="input-field" placeholder="Ex: 40" min="15" max="200" />
                 </div>
               </div>
               <div>

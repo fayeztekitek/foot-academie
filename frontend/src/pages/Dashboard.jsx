@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, statsApi, slotsApi, presencesApi } from '../api';
+import { dashboardApi, statsApi, slotsApi, presencesApi, notesApi } from '../api';
 import BarChart from '../components/BarChart';
 import { useAuth } from '../hooks/useAuth';
-import { Calendar, BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Users, CreditCard } from 'lucide-react';
+import { Calendar, BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Users, CreditCard, Trophy } from 'lucide-react';
 
 const DAY_MAP = {
   0: 'DIMANCHE', 1: 'LUNDI', 2: 'MARDI', 3: 'MERCREDI',
@@ -65,6 +65,13 @@ export default function Dashboard() {
   const { data: attendance, isLoading: attLoading } = useQuery({
     queryKey: ['attendance-global'],
     queryFn: () => presencesApi.getGlobalStats().then(r => r.data),
+    enabled: user?.role === 'ADMIN',
+  });
+
+  const now = new Date();
+  const { data: joueursDuMois } = useQuery({
+    queryKey: ['joueurs-du-mois', now.getMonth() + 1, now.getFullYear()],
+    queryFn: () => notesApi.getJoueursDuMois(now.getMonth() + 1, now.getFullYear()).then(r => r.data),
     enabled: user?.role === 'ADMIN',
   });
 
@@ -205,7 +212,10 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold">{s.categorieNom || '—'}</div>
                   <div className="text-xs truncate" style={{ color: 'var(--ink-soft)' }}>
-                    Coach {s.entraineurPrenom ? `${s.entraineurPrenom} ${s.entraineurNom}` : '—'} · {s.terrain || '—'}
+                    Coach {s.entraineurs && s.entraineurs.length > 1
+                      ? s.entraineurs.map(e => `${e.prenom} ${e.nom}`).join(', ')
+                      : s.entraineurPrenom ? `${s.entraineurPrenom} ${s.entraineurNom}` : '—'
+                    } · {s.terrain || '—'}
                   </div>
                 </div>
                 <span className={`pill text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${s.terrain?.toLowerCase().includes('salle') ? 'gold-light text-[#8A6A15]' : 'grass-light text-grass'}`}>
@@ -215,6 +225,34 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+
+        {/* Joueur du mois */}
+        {user?.role === 'ADMIN' && joueursDuMois && joueursDuMois.length > 0 && (
+          <div className="panel rounded-xl border border-line shadow-card">
+            <div className="flex justify-between items-center px-5 py-4 border-b" style={{ borderColor: 'var(--line)' }}>
+              <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>
+                <Trophy size={16} className="inline mr-1.5" style={{ color: 'var(--gold)' }} />
+                Joueur du mois
+              </h3>
+            </div>
+            <div className="py-1">
+              {joueursDuMois.map((j, i) => (
+                <div key={i} className="flex items-center gap-3 px-5 py-3 border-b last:border-b-0" style={{ borderColor: '#F0EEE4' }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--gold-light)', color: 'var(--gold)' }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold">{j.joueurPrenom} {j.joueurNom}</div>
+                    <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>{j.categorieNom}</div>
+                  </div>
+                  <div className="text-sm font-bold" style={{ color: 'var(--gold)' }}>
+                    {j.noteMoyenne?.toFixed(1) || '—'}/10
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Alerts panel — real data */}
         <div className="panel rounded-xl border border-line shadow-card">

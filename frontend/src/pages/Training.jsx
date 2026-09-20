@@ -89,10 +89,13 @@ export default function Training() {
                           key={si}
                           className="absolute inset-[2px] rounded px-1.5 py-1 text-[10.5px] font-semibold leading-tight overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                           style={{ background: colors.bg, color: colors.color, borderLeft: `3px solid ${colors.border}` }}
-                          title={`${slot.categorieNom} — ${slot.entraineurPrenom} ${slot.entraineurNom}`}
+                          title={`${slot.categorieNom} — ${slot.entraineurs?.length > 0 ? slot.entraineurs.map(e => `${e.prenom} ${e.nom}`).join(', ') : `${slot.entraineurPrenom} ${slot.entraineurNom}`}`}
                           onClick={() => navigate(`/presence?slot=${slot.id}`)}
                         >
                           {slot.categorieNom} · {slot.terrain || '—'}
+                          {slot.entraineurs && slot.entraineurs.length > 1 && (
+                            <span className="ml-1 opacity-70">({slot.entraineurs.length})</span>
+                          )}
                         </div>
                       );
                     })}

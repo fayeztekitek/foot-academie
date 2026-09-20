@@ -64,6 +64,10 @@ public class Entraineur {
     @Builder.Default
     private List<Creneau> creneaux = new ArrayList<>();
 
+    @ManyToMany(mappedBy = "entraineurs", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Creneau> creneauxMultiple = new HashSet<>();
+
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 

@@ -1,5 +1,6 @@
 package com.nadi.repository;
 
+import com.nadi.model.Categorie;
 import com.nadi.model.Creneau;
 import com.nadi.model.JourSemaine;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,6 +31,12 @@ public interface CreneauRepository extends JpaRepository<Creneau, Long> {
                                         @Param("debut") LocalTime debut,
                                         @Param("fin") LocalTime fin);
 
+    @Query("SELECT c FROM Creneau c JOIN c.entraineurs e WHERE e.id = :entraineurId AND c.jourSemaine = :jour AND c.heureDebut < :fin AND c.heureFin > :debut")
+    List<Creneau> findCoachMultipleOverlapping(@Param("entraineurId") Long entraineurId,
+                                               @Param("jour") JourSemaine jour,
+                                               @Param("debut") LocalTime debut,
+                                               @Param("fin") LocalTime fin);
+
     @Query("SELECT c FROM Creneau c WHERE c.terrain = :terrain AND c.jourSemaine = :jour AND c.heureDebut < :fin AND c.heureFin > :debut AND c.id <> :excludeId")
     List<Creneau> findOverlappingExcluding(@Param("terrain") String terrain,
                                             @Param("jour") JourSemaine jour,
@@ -47,4 +54,10 @@ public interface CreneauRepository extends JpaRepository<Creneau, Long> {
     List<Creneau> findByCategorieId(Long categorieId);
 
     List<Creneau> findByEntraineurId(Long entraineurId);
+
+    @Query("SELECT c FROM Creneau c JOIN c.entraineurs e WHERE e.id = :entraineurId")
+    List<Creneau> findByEntraineursId(@Param("entraineurId") Long entraineurId);
+
+    @Query("SELECT DISTINCT c.categorie FROM Creneau c WHERE c.tenantId = :tenantId")
+    List<Categorie> findDistinctCategories(@Param("tenantId") Long tenantId);
 }

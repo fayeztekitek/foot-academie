@@ -27,6 +27,11 @@ public class JoueurResponse {
     private String statutPaiement;
     private String frequence;
     private String photoUrl;
+    private String postePrincipal;
+    private String postesSecondaires;
+    private Integer taille;
+    private Integer poids;
+    private Double noteMoyenne;
     private Boolean certificatMedical;
     private Boolean autorisationParentale;
     private Integer moisAVerser;

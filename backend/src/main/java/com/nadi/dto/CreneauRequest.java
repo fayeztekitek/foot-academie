@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 public class CreneauRequest {
@@ -21,8 +22,9 @@ public class CreneauRequest {
     @NotNull(message = "La catégorie est obligatoire")
     private Long categorieId;
 
-    @NotNull(message = "L'entraîneur est obligatoire")
     private Long entraineurId;
+
+    private List<Long> entraineurIds;
 
     @NotBlank(message = "Le terrain est obligatoire")
     private String terrain;

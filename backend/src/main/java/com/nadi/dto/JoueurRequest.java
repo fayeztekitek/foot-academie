@@ -28,6 +28,14 @@ public class JoueurRequest {
 
     private String photoUrl;
 
+    private String postePrincipal;
+
+    private String postesSecondaires;
+
+    private Integer taille;
+
+    private Integer poids;
+
     private Boolean certificatMedical;
 
     private Boolean autorisationParentale;
