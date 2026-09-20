@@ -27,6 +27,9 @@ public class NoteJoueurResponse {
     private BigDecimal physique;
     private BigDecimal technique;
     private BigDecimal explosivite;
+    private BigDecimal tactique;
+    private BigDecimal mental;
+    private BigDecimal endurance;
     private BigDecimal noteGlobale;
     private LocalDateTime createdAt;
 }

@@ -50,6 +50,9 @@ public class NoteJoueurService {
                 .physique(request.getPhysique())
                 .technique(request.getTechnique())
                 .explosivite(request.getExplosivite())
+                .tactique(request.getTactique())
+                .mental(request.getMental())
+                .endurance(request.getEndurance())
                 .tenantId(TenantContext.getTenantId())
                 .build();
 
@@ -64,6 +67,9 @@ public class NoteJoueurService {
         stats.put("moyennePhysique", noteJoueurRepository.findAveragePhysiqueByJoueur(joueurId));
         stats.put("moyenneTechnique", noteJoueurRepository.findAverageTechniqueByJoueur(joueurId));
         stats.put("moyenneExplosivite", noteJoueurRepository.findAverageExplosiviteByJoueur(joueurId));
+        stats.put("moyenneTactique", noteJoueurRepository.findAverageTactiqueByJoueur(joueurId));
+        stats.put("moyenneMental", noteJoueurRepository.findAverageMentalByJoueur(joueurId));
+        stats.put("moyenneEndurance", noteJoueurRepository.findAverageEnduranceByJoueur(joueurId));
 
         LocalDate now = LocalDate.now();
         stats.put("moyenneMois", noteJoueurRepository.findAverageByJoueurAndMonth(joueurId, now.getMonthValue(), now.getYear()));
@@ -110,6 +116,9 @@ public class NoteJoueurService {
                 .physique(n.getPhysique())
                 .technique(n.getTechnique())
                 .explosivite(n.getExplosivite())
+                .tactique(n.getTactique())
+                .mental(n.getMental())
+                .endurance(n.getEndurance())
                 .noteGlobale(n.getNoteGlobale())
                 .createdAt(n.getCreatedAt())
                 .build();

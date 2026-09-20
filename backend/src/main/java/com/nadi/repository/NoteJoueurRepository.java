@@ -30,6 +30,15 @@ public interface NoteJoueurRepository extends JpaRepository<NoteJoueur, Long> {
     @Query("SELECT AVG(n.explosivite) FROM NoteJoueur n WHERE n.joueur.id = :joueurId")
     BigDecimal findAverageExplosiviteByJoueur(@Param("joueurId") Long joueurId);
 
+    @Query("SELECT AVG(n.tactique) FROM NoteJoueur n WHERE n.joueur.id = :joueurId")
+    BigDecimal findAverageTactiqueByJoueur(@Param("joueurId") Long joueurId);
+
+    @Query("SELECT AVG(n.mental) FROM NoteJoueur n WHERE n.joueur.id = :joueurId")
+    BigDecimal findAverageMentalByJoueur(@Param("joueurId") Long joueurId);
+
+    @Query("SELECT AVG(n.endurance) FROM NoteJoueur n WHERE n.joueur.id = :joueurId")
+    BigDecimal findAverageEnduranceByJoueur(@Param("joueurId") Long joueurId);
+
     @Query("SELECT AVG(n.noteGlobale) FROM NoteJoueur n WHERE n.joueur.id = :joueurId AND MONTH(n.date) = :mois AND YEAR(n.date) = :annee")
     BigDecimal findAverageByJoueurAndMonth(@Param("joueurId") Long joueurId, @Param("mois") int mois, @Param("annee") int annee);
 

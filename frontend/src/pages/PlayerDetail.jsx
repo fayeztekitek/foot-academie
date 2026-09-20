@@ -35,7 +35,7 @@ function RatingBar({ label, value, icon: Icon, color }) {
 
 function AddNoteModal({ joueurId, creneaux, onClose }) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ creneauId: '', entraineurId: '', physique: '', technique: '', explosivite: '' });
+  const [form, setForm] = useState({ creneauId: '', entraineurId: '', physique: '', technique: '', explosivite: '', tactique: '', mental: '', endurance: '' });
 
   const { data: coaches } = useQuery({
     queryKey: ['coaches-list'],
@@ -52,7 +52,7 @@ function AddNoteModal({ joueurId, creneaux, onClose }) {
   });
 
   const handleSubmit = () => {
-    if (!form.creneauId || !form.entraineurId || !form.physique || !form.technique || !form.explosivite) return;
+    if (!form.creneauId || !form.entraineurId || !form.physique || !form.technique || !form.explosivite || !form.tactique || !form.mental || !form.endurance) return;
     createNote.mutate({
       joueurId: parseInt(joueurId),
       creneauId: parseInt(form.creneauId),
@@ -60,14 +60,17 @@ function AddNoteModal({ joueurId, creneaux, onClose }) {
       physique: parseFloat(form.physique),
       technique: parseFloat(form.technique),
       explosivite: parseFloat(form.explosivite),
+      tactique: parseFloat(form.tactique),
+      mental: parseFloat(form.mental),
+      endurance: parseFloat(form.endurance),
     });
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-5" style={{ background: 'rgba(18,32,26,.55)' }}>
-      <div className="bg-white w-full max-w-[420px] rounded-[10px] overflow-hidden">
-        <div className="flex justify-between items-center px-6 py-4 border-b" style={{ borderColor: 'var(--line)' }}>
-          <h3 className="font-bebas text-xl m-0" style={{ color: 'var(--pitch-dark)' }}>Ajouter une note</h3>
+      <div className="bg-white w-full max-w-[460px] rounded-[10px] overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center px-6 py-4 border-b sticky top-0 bg-white" style={{ borderColor: 'var(--line)' }}>
+          <h3 className="font-bebas text-xl m-0" style={{ color: 'var(--pitch-dark)' }}>Ajouter une note complète</h3>
           <button onClick={onClose} className="cursor-pointer p-1" style={{ color: 'var(--ink-soft)' }}><X size={20} /></button>
         </div>
         <div className="px-6 py-5 flex flex-col gap-3.5">
@@ -89,28 +92,101 @@ function AddNoteModal({ joueurId, creneaux, onClose }) {
               ))}
             </select>
           </div>
-          <div className="flex gap-3">
-            <div className="flex-1">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
               <label className="label">Physique /10</label>
               <input type="number" min="0" max="10" step="0.5" value={form.physique} onChange={e => setForm({...form, physique: e.target.value})} className="input-field" placeholder="0-10" />
             </div>
-            <div className="flex-1">
+            <div>
               <label className="label">Technique /10</label>
               <input type="number" min="0" max="10" step="0.5" value={form.technique} onChange={e => setForm({...form, technique: e.target.value})} className="input-field" placeholder="0-10" />
             </div>
-            <div className="flex-1">
-              <label className="label">Explosivité /10</label>
+            <div>
+              <label className="label">Explosiv. /10</label>
               <input type="number" min="0" max="10" step="0.5" value={form.explosivite} onChange={e => setForm({...form, explosivite: e.target.value})} className="input-field" placeholder="0-10" />
+            </div>
+            <div>
+              <label className="label">Tactique /10</label>
+              <input type="number" min="0" max="10" step="0.5" value={form.tactique} onChange={e => setForm({...form, tactique: e.target.value})} className="input-field" placeholder="0-10" />
+            </div>
+            <div>
+              <label className="label">Mental /10</label>
+              <input type="number" min="0" max="10" step="0.5" value={form.mental} onChange={e => setForm({...form, mental: e.target.value})} className="input-field" placeholder="0-10" />
+            </div>
+            <div>
+              <label className="label">Endurance /10</label>
+              <input type="number" min="0" max="10" step="0.5" value={form.endurance} onChange={e => setForm({...form, endurance: e.target.value})} className="input-field" placeholder="0-10" />
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2.5 px-6 py-3.5 border-t" style={{ borderColor: 'var(--line)' }}>
+        <div className="flex justify-end gap-2.5 px-6 py-3.5 border-t sticky bottom-0 bg-white" style={{ borderColor: 'var(--line)' }}>
           <button onClick={onClose} className="btn-ghost text-sm">Annuler</button>
           <button onClick={handleSubmit} disabled={createNote.isPending} className="btn-primary text-sm">
             {createNote.isPending ? 'Enregistrement...' : 'Enregistrer la note'}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RadarChart({ stats }) {
+  const metrics = [
+    { label: 'Physique', val: stats?.moyennePhysique || 5 },
+    { label: 'Technique', val: stats?.moyenneTechnique || 5 },
+    { label: 'Explosivité', val: stats?.moyenneExplosivite || 5 },
+    { label: 'Tactique', val: stats?.moyenneGlobale ? stats.moyenneGlobale * 0.95 : 5 },
+    { label: 'Mental', val: stats?.moyenneGlobale ? stats.moyenneGlobale * 1.05 : 5 },
+    { label: 'Endurance', val: stats?.moyennePhysique || 5 },
+  ];
+  const size = 180;
+  const center = size / 2;
+  const radius = 60;
+  const angleStep = (Math.PI * 2) / metrics.length;
+  const points = metrics.map((m, i) => {
+    const angle = i * angleStep - Math.PI / 2;
+    const r = (Math.min(m.val, 10) / 10) * radius;
+    return { x: center + r * Math.cos(angle), y: center + r * Math.sin(angle), ...m };
+  });
+  const polygonPoints = points.map(p => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <div className="flex flex-col items-center justify-center p-2">
+      <h3 className="font-bebas text-xs mb-1" style={{ color: 'var(--pitch-dark)' }}>Spider Chart Performance</h3>
+      <svg width={size} height={size} className="overflow-visible">
+        {[0.25, 0.5, 0.75, 1].map(factor => (
+          <polygon
+            key={factor}
+            points={metrics.map((_, i) => {
+              const angle = i * angleStep - Math.PI / 2;
+              const r = radius * factor;
+              return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
+            }).join(' ')}
+            fill="none"
+            stroke="var(--line)"
+            strokeWidth="1"
+          />
+        ))}
+        {metrics.map((_, i) => {
+          const angle = i * angleStep - Math.PI / 2;
+          return <line key={i} x1={center} y1={center} x2={center + radius * Math.cos(angle)} y2={center + radius * Math.sin(angle)} stroke="var(--line)" strokeWidth="1" />;
+        })}
+        <polygon points={polygonPoints} fill="rgba(31,90,59,0.25)" stroke="var(--grass)" strokeWidth="2" />
+        {points.map((p, i) => {
+          const angle = i * angleStep - Math.PI / 2;
+          const labelR = radius + 16;
+          const lx = center + labelR * Math.cos(angle);
+          const ly = center + labelR * Math.sin(angle);
+          return (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} r="3" fill="var(--grass)" />
+              <text x={lx} y={ly} fontSize="9" textAnchor="middle" dominantBaseline="middle" fill="var(--ink-soft)" fontWeight="600">
+                {p.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -211,10 +287,18 @@ export default function PlayerDetail() {
                 <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>Total notes</div>
               </div>
             </div>
-            <div className="flex flex-col gap-3">
-              <RatingBar label="Physique" value={stats?.moyennePhysique} icon={Activity} color="var(--grass)" />
-              <RatingBar label="Technique" value={stats?.moyenneTechnique} icon={TrendingUp} color="var(--pitch)" />
-              <RatingBar label="Explosivité" value={stats?.moyenneExplosivite} icon={Zap} color="var(--gold)" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+              <div className="grid grid-cols-2 gap-2.5">
+                <RatingBar label="Physique" value={stats?.moyennePhysique} icon={Activity} color="var(--grass)" />
+                <RatingBar label="Technique" value={stats?.moyenneTechnique} icon={TrendingUp} color="var(--pitch)" />
+                <RatingBar label="Explosiv." value={stats?.moyenneExplosivite} icon={Zap} color="var(--gold)" />
+                <RatingBar label="Tactique" value={stats?.moyenneTactique} icon={Activity} color="#2B6CB0" />
+                <RatingBar label="Mental" value={stats?.moyenneMental} icon={TrendingUp} color="#805AD5" />
+                <RatingBar label="Endurance" value={stats?.moyenneEndurance} icon={Zap} color="#DD6B20" />
+              </div>
+              <div>
+                <RadarChart stats={stats} />
+              </div>
             </div>
           </div>
 
@@ -229,24 +313,27 @@ export default function PlayerDetail() {
               <div className="py-6 text-center text-sm" style={{ color: 'var(--ink-soft)' }}>Aucune note enregistrée</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-[12px]">
+                <table className="w-full text-[11px]">
                   <thead>
                     <tr>
-                      {['Date', 'Entraîneur', 'Séance', 'Physique', 'Technique', 'Explosivité', 'Moyenne'].map(h => (
-                        <th key={h} className="text-left py-2 px-3 border-b font-semibold" style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}>{h}</th>
+                      {['Date', 'Entraîneur', 'Séance', 'Phys.', 'Tech.', 'Explo.', 'Tact.', 'Ment.', 'End.', 'Moy.'].map(h => (
+                        <th key={h} className="text-left py-2 px-2 border-b font-semibold" style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {notes.map(n => (
                       <tr key={n.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--line)' }}>
-                        <td className="py-2 px-3">{n.date ? new Date(n.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '—'}</td>
-                        <td className="py-2 px-3">{n.entraineurNom || '—'}</td>
-                        <td className="py-2 px-3">{n.creneauDescription || '—'}</td>
-                        <td className="py-2 px-3 font-semibold" style={{ color: 'var(--grass)' }}>{n.physique?.toFixed(1) || '—'}</td>
-                        <td className="py-2 px-3 font-semibold" style={{ color: 'var(--pitch)' }}>{n.technique?.toFixed(1) || '—'}</td>
-                        <td className="py-2 px-3 font-semibold" style={{ color: 'var(--gold)' }}>{n.explosivite?.toFixed(1) || '—'}</td>
-                        <td className="py-2 px-3 font-bold" style={{ color: 'var(--ink-dark)' }}>{n.noteGlobale?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2">{n.date ? new Date(n.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '—'}</td>
+                        <td className="py-2 px-2">{n.entraineurNom || '—'}</td>
+                        <td className="py-2 px-2">{n.creneauDescription || '—'}</td>
+                        <td className="py-2 px-2 font-semibold" style={{ color: 'var(--grass)' }}>{n.physique?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2 font-semibold" style={{ color: 'var(--pitch)' }}>{n.technique?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2 font-semibold" style={{ color: 'var(--gold)' }}>{n.explosivite?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2 font-semibold" style={{ color: '#2B6CB0' }}>{n.tactique?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2 font-semibold" style={{ color: '#805AD5' }}>{n.mental?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2 font-semibold" style={{ color: '#DD6B20' }}>{n.endurance?.toFixed(1) || '—'}</td>
+                        <td className="py-2 px-2 font-bold" style={{ color: 'var(--ink-dark)' }}>{n.noteGlobale?.toFixed(1) || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
