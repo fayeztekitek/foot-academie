@@ -34,6 +34,7 @@ public class Document {
     @Column(nullable = false)
     private TypeDocument type;
 
+    @Column(columnDefinition = "TEXT")
     private String fichierUrl;
 
     private String nomFichier;

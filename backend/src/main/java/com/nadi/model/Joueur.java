@@ -53,6 +53,7 @@ public class Joueur {
     @Enumerated(EnumType.STRING)
     private FormulePaiement frequence;
 
+    @Column(columnDefinition = "TEXT")
     private String photoUrl;
 
     @Enumerated(EnumType.STRING)
