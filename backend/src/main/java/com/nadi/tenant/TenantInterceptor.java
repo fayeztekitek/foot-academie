@@ -40,7 +40,10 @@ public class TenantInterceptor implements HandlerInterceptor {
         log.debug("No tenant context for request: {} (may be set by JWT filter)", path);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
-        response.getWriter().write("{\"message\":\"Tenant context not set\"}");
+        try {
+            response.getWriter().write("{\"message\":\"Tenant context not set\"}");
+        } catch (Exception ignored) {
+        }
         return false;
     }
 
