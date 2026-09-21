@@ -97,7 +97,6 @@ public class EntraineurService {
         }
 
         EntraineurResponse response = toResponse(entraineur);
-        response.setMotDePasse(motDePasse);
         return response;
     }
 

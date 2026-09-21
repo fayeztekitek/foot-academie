@@ -86,7 +86,6 @@ public class ParentService {
         }
 
         ParentResponse response = toResponse(parent);
-        response.setMotDePasse(motDePasse);
 
         if (motDePasse != null && request.getEmail() != null && !request.getEmail().isBlank()) {
             emailService.sendParentCredentials(
