@@ -220,7 +220,12 @@ export default function PlayerDetail() {
   if (!player) return <div className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Joueur non trouvé</div>;
 
   const notes = notesData?.content || notesData || [];
-  const postesSec = player.postesSecondaires ? JSON.parse(player.postesSecondaires) : [];
+  let postesSec = [];
+  try {
+    postesSec = player.postesSecondaires ? JSON.parse(player.postesSecondaires) : [];
+  } catch {
+    postesSec = [];
+  }
 
   return (
     <div className="flex flex-col gap-6">

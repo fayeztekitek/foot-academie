@@ -118,12 +118,18 @@ public class PaiementController {
         Long joueurId = Long.valueOf(body.get("joueurId").toString());
         Long parentId = Long.valueOf(body.get("parentId").toString());
         String formule = (String) body.get("formule");
+        com.nadi.model.FormulePaiement formuleEnum;
+        try {
+            formuleEnum = com.nadi.model.FormulePaiement.valueOf(formule);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Formule invalide"));
+        }
         String startDateStr = (String) body.get("startDate");
 
         paiementService.generateSchedule(
                 joueurId,
                 parentId,
-                com.nadi.model.FormulePaiement.valueOf(formule),
+                formuleEnum,
                 java.time.LocalDate.parse(startDateStr)
         );
         return ResponseEntity.ok(Map.of("message", "Échéancier généré avec succès"));

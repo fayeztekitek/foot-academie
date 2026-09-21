@@ -23,6 +23,6 @@ public class EntraineurResponse {
     private String photoUrl;
     private List<CategorieResponse> categories;
     private Long utilisateurId;
-    private String motDePasse;
+    private Boolean mustChangePassword;
     private LocalDateTime createdAt;
 }

@@ -21,6 +21,7 @@ public class CreneauController {
     private final CreneauService creneauService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<List<CreneauResponse>> getAll(
             @RequestParam(required = false) String jour,
             @RequestParam(required = false) Long categorieId,

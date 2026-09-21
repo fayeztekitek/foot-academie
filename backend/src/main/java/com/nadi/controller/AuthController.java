@@ -43,8 +43,8 @@ public class AuthController {
                 || ancienMotDePasse.isBlank() || nouveauMotDePasse.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        if (nouveauMotDePasse.length() < 6) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le mot de passe doit contenir au moins 6 caractères"));
+        if (nouveauMotDePasse.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Le mot de passe doit contenir au moins 8 caractères"));
         }
         authService.changePassword(securityUtils.getCurrentUserOrThrow(), ancienMotDePasse, nouveauMotDePasse);
         return ResponseEntity.ok(Map.of("message", "Mot de passe modifié avec succès"));

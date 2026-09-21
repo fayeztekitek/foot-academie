@@ -22,6 +22,7 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @GetMapping("/joueur/{joueurId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<List<DocumentResponse>> getByJoueur(@PathVariable Long joueurId) {
         return ResponseEntity.ok(documentService.getByJoueur(joueurId));
     }
@@ -65,7 +66,13 @@ public class DocumentController {
     public ResponseEntity<DocumentResponse> updateStatut(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(documentService.updateStatut(id,
-                com.nadi.model.StatutDocument.valueOf(body.get("statut"))));
+        String statutStr = body.get("statut");
+        com.nadi.model.StatutDocument statut;
+        try {
+            statut = com.nadi.model.StatutDocument.valueOf(statutStr);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(documentService.updateStatut(id, statut));
     }
 }

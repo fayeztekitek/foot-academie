@@ -23,6 +23,7 @@ public class CategorieController {
     private final CategorieService categorieService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<Page<CategorieResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -35,6 +36,7 @@ public class CategorieController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<CategorieResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(categorieService.getById(id));
     }

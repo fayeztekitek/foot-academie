@@ -32,7 +32,16 @@ public class PaymentGatewayController {
     }
 
     @PostMapping("/webhook")
-    public ResponseEntity<Map<String, String>> webhook(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> webhook(
+            @RequestHeader(value = "X-Webhook-Secret", required = false) String webhookSecret,
+            @RequestBody Map<String, String> body) {
+        String configuredSecret = System.getenv("WEBHOOK_SECRET");
+        if (configuredSecret != null && !configuredSecret.isEmpty()) {
+            if (webhookSecret == null || !configuredSecret.equals(webhookSecret)) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Unauthorized"));
+            }
+        }
         String paymentId = body.get("paymentId");
         String transactionId = body.get("transactionId");
         boolean confirmed = gatewayService.confirmPayment(paymentId, transactionId);

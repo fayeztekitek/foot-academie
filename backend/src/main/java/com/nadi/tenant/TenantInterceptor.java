@@ -37,21 +37,11 @@ public class TenantInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        String tenantHeader = request.getHeader("X-Tenant-ID");
-        if (tenantHeader != null) {
-            try {
-                tenantId = Long.parseLong(tenantHeader);
-                TenantContext.setTenantId(tenantId);
-                return true;
-            } catch (NumberFormatException e) {
-                log.warn("Invalid X-Tenant-ID header: {}", tenantHeader);
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return false;
-            }
-        }
-
         log.debug("No tenant context for request: {} (may be set by JWT filter)", path);
-        return true;
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"message\":\"Tenant context not set\"}");
+        return false;
     }
 
     @Override

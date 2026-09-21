@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.nadi.tenant.TenantContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -21,9 +22,24 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String key = getClientIp(request) + ":" + request.getRequestURI();
+        String path = request.getRequestURI();
 
-        if (request.getRequestURI().contains("/auth/login")) {
+        // Whitelist public endpoints — no tenant needed
+        boolean isPublic = path.startsWith("/api/auth/")
+                || path.startsWith("/onboarding/")
+                || path.equals("/api/health")
+                || path.equals("/actuator/health");
+
+        if (!isPublic && TenantContext.getTenantId() == null) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Tenant context not set\"}");
+            return;
+        }
+
+        String key = getClientIp(request) + ":" + path;
+
+        if (path.contains("/auth/login")) {
             RequestCounter counter = counterMap.computeIfAbsent(key, k -> new RequestCounter());
             if (!counter.allowRequest(5)) {
                 response.setStatus(429);
@@ -38,10 +54,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isEmpty()) {
-            return xff.split(",")[0].trim();
-        }
+        // Use remoteAddr only — X-Forwarded-For can be spoofed by clients
         return request.getRemoteAddr();
     }
 

@@ -24,6 +24,7 @@ public class EntraineurController {
     private final EntraineurService entraineurService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<Page<EntraineurResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -36,11 +37,13 @@ public class EntraineurController {
     }
 
     @GetMapping("/list")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<List<EntraineurResponse>> getAllList() {
         return ResponseEntity.ok(entraineurService.getAllList());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<EntraineurResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(entraineurService.getById(id));
     }
@@ -71,6 +74,9 @@ public class EntraineurController {
         String nouveauMotDePasse = body.get("motDePasse");
         if (nouveauMotDePasse == null || nouveauMotDePasse.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Le mot de passe est obligatoire"));
+        }
+        if (nouveauMotDePasse.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Le mot de passe doit contenir au moins 8 caractères"));
         }
         entraineurService.resetPassword(id, nouveauMotDePasse);
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));

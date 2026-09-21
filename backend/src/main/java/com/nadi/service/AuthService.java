@@ -25,7 +25,11 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         Utilisateur user = utilisateurRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+                .orElseThrow(() -> new RuntimeException("Identifiants incorrects"));
+
+        if (Boolean.FALSE.equals(user.getActif())) {
+            throw new RuntimeException("Compte désactivé");
+        }
 
         TenantContext.setTenantId(user.getTenantId());
 
@@ -58,11 +62,18 @@ public class AuthService {
         Utilisateur user = utilisateurRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
+        if (Boolean.FALSE.equals(user.getActif())) {
+            throw new RuntimeException("Compte désactivé");
+        }
+
+        // Rotate: generate new access AND refresh tokens
         String newAccessToken = tokenProvider.generateAccessTokenFromEmail(email, user.getTenantId());
+        String newRefreshToken = tokenProvider.generateRefreshToken(
+                new UsernamePasswordAuthenticationToken(email, null), user.getTenantId());
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(refreshToken)
+                .refreshToken(newRefreshToken)
                 .tokenType("Bearer")
                 .expiresIn(tokenProvider.getAccessTokenExpirationMs() / 1000)
                 .role(user.getRole().name())

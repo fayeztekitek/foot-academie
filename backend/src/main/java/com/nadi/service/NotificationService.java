@@ -72,6 +72,17 @@ public class NotificationService {
     }
 
     @Transactional
+    public void markAsReadForUser(Long id, Long userId) {
+        Notification notif = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification non trouvée: " + id));
+        if (!notif.getUtilisateur().getId().equals(userId)) {
+            throw new RuntimeException("Accès interdit");
+        }
+        notif.setLu(true);
+        notificationRepository.save(notif);
+    }
+
+    @Transactional
     public void markAllAsRead(Long userId) {
         List<Notification> unread = notificationRepository.findByUtilisateurIdAndLuFalse(userId);
         for (Notification n : unread) {

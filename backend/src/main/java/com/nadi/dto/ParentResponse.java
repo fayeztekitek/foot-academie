@@ -23,7 +23,7 @@ public class ParentResponse {
     private Boolean consentementRGPD;
     private LocalDate dateConsentementRGPD;
     private Long utilisateurId;
-    private String motDePasse;
+    private Boolean mustChangePassword;
     private List<JoueurResponse> joueurs;
     private LocalDateTime createdAt;
 }

@@ -66,7 +66,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -75,7 +75,7 @@ spring:
 ---
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:myDefaultSecretKeyForDevelopmentOnlyDoNotUseInProduction2024!}
+  secret: ${JWT_SECRET}
   access-token-expiration-ms: 3600000    # 1 hour
   refresh-token-expiration-ms: 604800000 # 7 days
 

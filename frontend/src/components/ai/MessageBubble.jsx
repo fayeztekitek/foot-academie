@@ -1,6 +1,13 @@
 import { Bot, User, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
+const SafeMarkdownLink = ({ href, children }) => {
+  if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('/'))) {
+    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+  }
+  return <span>{children}</span>;
+};
+
 export default function MessageBubble({ message }) {
   const isUser = message.role === 'user';
 
@@ -23,7 +30,7 @@ export default function MessageBubble({ message }) {
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
           <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+            <ReactMarkdown components={{ a: SafeMarkdownLink }}>{message.content}</ReactMarkdown>
           </div>
         )}
 

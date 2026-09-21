@@ -22,6 +22,7 @@ public class NoteJoueurController {
     private final NoteJoueurService noteJoueurService;
 
     @GetMapping("/joueur/{joueurId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<Page<NoteJoueurResponse>> getByJoueur(
             @PathVariable Long joueurId,
             @RequestParam(defaultValue = "0") int page,
@@ -36,11 +37,13 @@ public class NoteJoueurController {
     }
 
     @GetMapping("/joueur/{joueurId}/stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
     public ResponseEntity<Map<String, Object>> getStats(@PathVariable Long joueurId) {
         return ResponseEntity.ok(noteJoueurService.getStats(joueurId));
     }
 
     @GetMapping("/joueur-du-mois")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH')")
     public ResponseEntity<List<Map<String, Object>>> getJoueursDuMois(
             @RequestParam int mois,
             @RequestParam int annee) {

@@ -41,10 +41,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
+        // Never leak internal details to clients
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "timestamp", LocalDateTime.now().toString(),
                 "status", 500,
-                "message", ex.getMessage()
+                "message", "Erreur interne du serveur"
         ));
     }
 }

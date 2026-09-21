@@ -42,7 +42,8 @@ public class NotificationController {
 
     @PostMapping("/{id}/read")
     public ResponseEntity<Map<String, String>> markAsRead(@PathVariable Long id) {
-        notificationService.markAsRead(id);
+        Utilisateur user = getCurrentUser();
+        notificationService.markAsReadForUser(id, user.getId());
         return ResponseEntity.ok(Map.of("message", "Notification marquée comme lue"));
     }
 

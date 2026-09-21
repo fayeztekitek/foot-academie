@@ -21,7 +21,9 @@ public class TenantFilterAspect {
     public Object enableTenantFilter(ProceedingJoinPoint joinPoint) throws Throwable {
         Long tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
-            return joinPoint.proceed();
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Tenant context not set");
         }
 
         Session session = entityManager.unwrap(Session.class);
