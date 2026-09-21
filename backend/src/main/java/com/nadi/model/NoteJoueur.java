@@ -51,13 +51,13 @@ public class NoteJoueur {
     @Column(nullable = false, precision = 3, scale = 1)
     private BigDecimal explosivite;
 
-    @Column(nullable = false, precision = 3, scale = 1)
+    @Column(precision = 3, scale = 1)
     private BigDecimal tactique;
 
-    @Column(nullable = false, precision = 3, scale = 1)
+    @Column(precision = 3, scale = 1)
     private BigDecimal mental;
 
-    @Column(nullable = false, precision = 3, scale = 1)
+    @Column(precision = 3, scale = 1)
     private BigDecimal endurance;
 
     @Column(nullable = false, precision = 3, scale = 1)
@@ -76,9 +76,19 @@ public class NoteJoueur {
     @PrePersist
     @PreUpdate
     public void calculerNoteGlobale() {
-        if (physique != null && technique != null && explosivite != null && tactique != null && mental != null && endurance != null) {
-            this.noteGlobale = physique.add(technique).add(explosivite).add(tactique).add(mental).add(endurance)
-                    .divide(BigDecimal.valueOf(6), 1, RoundingMode.HALF_UP);
+        BigDecimal sum = BigDecimal.ZERO;
+        int count = 0;
+        if (physique != null) { sum = sum.add(physique); count++; }
+        if (technique != null) { sum = sum.add(technique); count++; }
+        if (explosivite != null) { sum = sum.add(explosivite); count++; }
+        if (tactique != null) { sum = sum.add(tactique); count++; }
+        if (mental != null) { sum = sum.add(mental); count++; }
+        if (endurance != null) { sum = sum.add(endurance); count++; }
+
+        if (count > 0) {
+            this.noteGlobale = sum.divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP);
+        } else {
+            this.noteGlobale = BigDecimal.ZERO;
         }
     }
 }

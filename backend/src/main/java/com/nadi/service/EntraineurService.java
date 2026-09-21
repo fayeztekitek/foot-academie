@@ -81,12 +81,15 @@ public class EntraineurService {
 
         String motDePasse = null;
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            motDePasse = "Nadi" + UUID.randomUUID().toString().substring(0, 4);
+            motDePasse = (request.getMotDePasse() != null && !request.getMotDePasse().isBlank())
+                    ? request.getMotDePasse()
+                    : "Nadi" + UUID.randomUUID().toString().substring(0, 4);
             Utilisateur utilisateur = Utilisateur.builder()
                     .email(request.getEmail())
                     .motDePasseHash(passwordEncoder.encode(motDePasse))
                     .role(Role.COACH)
                     .actif(true)
+                    .mustChangePassword(true)
                     .build();
             utilisateur = utilisateurRepository.save(utilisateur);
             entraineur.setUtilisateur(utilisateur);
@@ -119,6 +122,32 @@ public class EntraineurService {
         }
 
         return toResponse(entraineurRepository.save(entraineur));
+    }
+
+    @Transactional
+    public void resetPassword(Long id, String nouveauMotDePasse) {
+        Entraineur entraineur = entraineurRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Entraîneur non trouvé: " + id));
+
+        if (entraineur.getUtilisateur() == null) {
+            if (entraineur.getEmail() == null || entraineur.getEmail().isBlank()) {
+                throw new RuntimeException("Cet entraîneur n'a pas d'email configuré, impossible de créer un compte");
+            }
+            Utilisateur utilisateur = Utilisateur.builder()
+                    .email(entraineur.getEmail())
+                    .motDePasseHash(passwordEncoder.encode(nouveauMotDePasse))
+                    .role(Role.COACH)
+                    .actif(true)
+                    .mustChangePassword(true)
+                    .build();
+            utilisateur = utilisateurRepository.save(utilisateur);
+            entraineur.setUtilisateur(utilisateur);
+            entraineurRepository.save(entraineur);
+        } else {
+            entraineur.getUtilisateur().setMotDePasseHash(passwordEncoder.encode(nouveauMotDePasse));
+            entraineur.getUtilisateur().setMustChangePassword(true);
+            utilisateurRepository.save(entraineur.getUtilisateur());
+        }
     }
 
     @Transactional

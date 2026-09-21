@@ -50,9 +50,9 @@ public class NoteJoueurService {
                 .physique(request.getPhysique())
                 .technique(request.getTechnique())
                 .explosivite(request.getExplosivite())
-                .tactique(request.getTactique())
-                .mental(request.getMental())
-                .endurance(request.getEndurance())
+                .tactique(request.getTactique() != null ? request.getTactique() : request.getPhysique())
+                .mental(request.getMental() != null ? request.getMental() : request.getTechnique())
+                .endurance(request.getEndurance() != null ? request.getEndurance() : request.getPhysique())
                 .tenantId(TenantContext.getTenantId())
                 .build();
 

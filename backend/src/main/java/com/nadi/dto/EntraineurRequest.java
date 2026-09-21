@@ -22,5 +22,7 @@ public class EntraineurRequest {
 
     private String photoUrl;
 
+    private String motDePasse;
+
     private Set<Long> categorieIds;
 }

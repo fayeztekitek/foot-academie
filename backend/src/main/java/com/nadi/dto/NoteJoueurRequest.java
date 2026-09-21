@@ -34,15 +34,12 @@ public class NoteJoueurRequest {
     @Min(0) @Max(10)
     private BigDecimal explosivite;
 
-    @NotNull(message = "La note tactique est obligatoire")
     @Min(0) @Max(10)
     private BigDecimal tactique;
 
-    @NotNull(message = "La note mentale est obligatoire")
     @Min(0) @Max(10)
     private BigDecimal mental;
 
-    @NotNull(message = "La note d'endurance est obligatoire")
     @Min(0) @Max(10)
     private BigDecimal endurance;
 }
