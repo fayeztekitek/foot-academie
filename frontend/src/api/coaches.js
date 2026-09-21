@@ -16,5 +16,7 @@ export const coachesApi = {
 
   update: (id, data) => api.put(`/coaches/${id}`, data),
 
+  resetPassword: (id, motDePasse) => api.post(`/coaches/${id}/reset-password`, { motDePasse }),
+
   delete: (id) => api.delete(`/coaches/${id}`),
 };

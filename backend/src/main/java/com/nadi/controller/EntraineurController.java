@@ -64,4 +64,15 @@ public class EntraineurController {
         entraineurService.delete(id);
         return ResponseEntity.ok(Map.of("message", "Entraîneur supprimé"));
     }
+
+    @PostMapping("/{id}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String nouveauMotDePasse = body.get("motDePasse");
+        if (nouveauMotDePasse == null || nouveauMotDePasse.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Le mot de passe est obligatoire"));
+        }
+        entraineurService.resetPassword(id, nouveauMotDePasse);
+        return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));
+    }
 }

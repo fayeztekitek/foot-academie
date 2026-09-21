@@ -12,6 +12,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from 'lucide-react';
 
 const TYPE_LABELS = {
@@ -112,6 +113,8 @@ export default function Events() {
     joueurIds: [],
     categorieIds: [],
   });
+  const [eventSearch, setEventSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   const { data: events = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['events', currentYear, currentMonth],
@@ -390,6 +393,38 @@ export default function Events() {
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="flex gap-3 mb-5 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-[340px]">
+          <Search size={15} className="absolute left-3 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+          <input
+            value={eventSearch}
+            onChange={e => setEventSearch(e.target.value)}
+            placeholder="Rechercher un événement…"
+            className="input-field pl-9 text-xs"
+          />
+        </div>
+        <select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          className="input-field text-xs py-1.5 px-3"
+        >
+          <option value="">Tous les types</option>
+          {Object.entries(TYPE_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+        {(eventSearch || typeFilter) && (
+          <button
+            onClick={() => { setEventSearch(''); setTypeFilter(''); }}
+            className="text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer hover:bg-gray-50"
+            style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}
+          >
+            <X size={12} /> Effacer filtres
+          </button>
+        )}
+      </div>
+
       <div className="panel" style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <button className="btn-ghost" onClick={prevMonth} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -424,7 +459,14 @@ export default function Events() {
           ))}
           {days.map((day, idx) => {
             if (day === null) return <div key={`empty-${idx}`} />;
-            const dayEvts = getEventsForDay(events, currentYear, currentMonth, day);
+            const dayEvts = getEventsForDay(events, currentYear, currentMonth, day).filter(ev => {
+              if (eventSearch) {
+                const q = eventSearch.toLowerCase();
+                if (!(ev.titre || '').toLowerCase().includes(q) && !(ev.lieu || '').toLowerCase().includes(q)) return false;
+              }
+              if (typeFilter && ev.type !== typeFilter) return false;
+              return true;
+            });
             const isToday =
               today.getFullYear() === currentYear &&
               today.getMonth() === currentMonth &&

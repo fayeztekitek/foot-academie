@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../api/client';
-import { Plus, Mail, Clock, CheckCircle, XCircle, Trash2, Copy, UserPlus } from 'lucide-react';
+import { Plus, Mail, Clock, CheckCircle, XCircle, Trash2, Copy, UserPlus, Search } from 'lucide-react';
 
 export default function Invitations() {
   const { isAdmin } = useAuth();
@@ -11,6 +11,9 @@ export default function Invitations() {
   const [form, setForm] = useState({ email: '', role: 'COACH' });
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(null);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     loadInvitations();
@@ -74,6 +77,16 @@ export default function Invitations() {
 
   if (loading) return <div className="p-8 text-center text-gray-500">Chargement...</div>;
 
+  const filteredInvitations = invitations.filter(inv => {
+    if (search) {
+      const q = search.toLowerCase();
+      if (!inv.email?.toLowerCase().includes(q) && !inv.invitedByEmail?.toLowerCase().includes(q)) return false;
+    }
+    if (roleFilter && inv.role !== roleFilter) return false;
+    if (statusFilter && inv.statut !== statusFilter) return false;
+    return true;
+  });
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -92,6 +105,50 @@ export default function Invitations() {
         )}
       </div>
 
+      {/* Filters */}
+      <div className="flex gap-3 mb-5 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-[340px]">
+          <Search size={15} className="absolute left-3 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher par email…"
+            className="input-field pl-9 text-xs"
+            aria-label="Rechercher une invitation"
+          />
+        </div>
+        <select
+          value={roleFilter}
+          onChange={e => setRoleFilter(e.target.value)}
+          className="input-field text-xs py-1.5 px-3"
+        >
+          <option value="">Tous les rôles</option>
+          <option value="ADMIN">Administrateur</option>
+          <option value="COACH">Entraîneur</option>
+          <option value="PARENT">Parent</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="input-field text-xs py-1.5 px-3"
+        >
+          <option value="">Tous les statuts</option>
+          <option value="EN_ATTENTE">En attente</option>
+          <option value="ACCEPTEE">Acceptée</option>
+          <option value="EXPIREE">Expirée</option>
+          <option value="ANNULEE">Annulée</option>
+        </select>
+        {(search || roleFilter || statusFilter) && (
+          <button
+            onClick={() => { setSearch(''); setRoleFilter(''); setStatusFilter(''); }}
+            className="text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer hover:bg-gray-50"
+            style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}
+          >
+            <XCircle size={12} /> Effacer filtres
+          </button>
+        )}
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -106,7 +163,14 @@ export default function Invitations() {
               </tr>
             </thead>
             <tbody>
-              {invitations.map(inv => {
+              {filteredInvitations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-gray-400">
+                    <UserPlus size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>{invitations.length === 0 ? 'Aucune invitation' : 'Aucune invitation ne correspond aux filtres'}</p>
+                  </td>
+                </tr>
+              ) : filteredInvitations.map(inv => {
                 const status = statusConfig[inv.statut] || statusConfig.EN_ATTENTE;
                 const StatusIcon = status.icon;
                 return (
@@ -163,12 +227,6 @@ export default function Invitations() {
               })}
             </tbody>
           </table>
-          {invitations.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <UserPlus size={48} className="mx-auto mb-4 opacity-50" />
-              <p>Aucune invitation</p>
-            </div>
-          )}
         </div>
       </div>
 

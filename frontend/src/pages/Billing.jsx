@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../api/client';
-import { CreditCard, Check, X, AlertTriangle, Users, GraduationCap, UserCog, FileText, ArrowRight } from 'lucide-react';
+import { CreditCard, Check, X, AlertTriangle, Users, GraduationCap, UserCog, FileText, ArrowRight, Search } from 'lucide-react';
 
 const PLAN_DETAILS = {
   FREE: { label: 'Gratuit', color: 'bg-gray-100 text-gray-700', border: 'border-gray-300', icon: '⚽' },
@@ -16,6 +16,8 @@ export default function Billing() {
   const [plans, setPlans] = useState({});
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState(null);
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     loadData();
@@ -65,6 +67,15 @@ export default function Billing() {
   const usageColor = (pct) => pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-green-500';
 
   if (loading) return <div className="p-8 text-center text-gray-500">Chargement...</div>;
+
+  const filteredFactures = factures.filter(f => {
+    if (invoiceSearch) {
+      const q = invoiceSearch.toLowerCase();
+      if (!(f.numero || '').toLowerCase().includes(q) && !(f.description || '').toLowerCase().includes(q)) return false;
+    }
+    if (statusFilter && f.statut !== statusFilter) return false;
+    return true;
+  });
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -191,7 +202,30 @@ export default function Billing() {
       {/* Factures */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Historique des factures</h2>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-lg font-semibold text-gray-900">Historique des factures</h2>
+            <div className="flex gap-3 items-center flex-wrap">
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+                <input
+                  value={invoiceSearch}
+                  onChange={e => setInvoiceSearch(e.target.value)}
+                  placeholder="Rechercher numéro ou description…"
+                  className="input-field pl-8 text-xs py-1.5"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="input-field text-xs py-1.5 px-3"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="PAYEE">Payée</option>
+                <option value="EN_ATTENTE">En attente</option>
+                <option value="EN_RETARD">En retard</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -206,7 +240,14 @@ export default function Billing() {
               </tr>
             </thead>
             <tbody>
-              {factures.map(f => (
+              {filteredFactures.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-gray-400">
+                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>{factures.length === 0 ? 'Aucune facture' : 'Aucune facture ne correspond aux filtres'}</p>
+                  </td>
+                </tr>
+              ) : filteredFactures.map(f => (
                 <tr key={f.id} className="border-t border-gray-100 hover:bg-gray-50 transition">
                   <td className="px-5 py-4 font-mono text-sm font-medium text-gray-900">{f.numero}</td>
                   <td className="px-5 py-4 text-sm text-gray-600">{f.description}</td>
@@ -227,12 +268,6 @@ export default function Billing() {
               ))}
             </tbody>
           </table>
-          {factures.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <FileText size={48} className="mx-auto mb-4 opacity-50" />
-              <p>Aucune facture</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

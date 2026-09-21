@@ -44,6 +44,8 @@ function getCurrentMonthKey() {
 export default function Payments() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('all');
+  const [search, setSearch] = useState('');
+  const [moyenFilter, setMoyenFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [createForm, setCreateForm] = useState({ joueurId: '', montant: 60, mois: getCurrentMonthKey(), frequence: 'MENSUEL', moyenPaiement: 'ESPECES', statut: 'EN_ATTENTE', commentaire: '' });
@@ -96,6 +98,17 @@ export default function Payments() {
   });
 
   const payments = data?.content || data || [];
+
+  const filteredPayments = payments.filter(p => {
+    if (search) {
+      const q = search.toLowerCase();
+      const matchName = `${p.joueurPrenom || ''} ${p.joueurNom || ''}`.toLowerCase().includes(q);
+      const matchParent = `${p.parentPrenom || ''} ${p.parentNom || ''}`.toLowerCase().includes(q);
+      if (!matchName && !matchParent) return false;
+    }
+    if (moyenFilter && p.moyenPaiement !== moyenFilter) return false;
+    return true;
+  });
 
   const totalFacture = payments.reduce((s, p) => s + (p.montant || 0), 0);
   const totalEncaisse = payments.filter(p => p.statut === 'PAYE').reduce((s, p) => s + (p.montant || 0), 0);
@@ -157,6 +170,40 @@ export default function Payments() {
             </button>
           ))}
         </div>
+
+        {/* Search + payment method filter */}
+        <div className="flex gap-3 items-center flex-wrap">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher joueur ou parent…"
+              className="input-field pl-9 text-xs py-1.5"
+              aria-label="Rechercher un paiement"
+            />
+          </div>
+          <select
+            value={moyenFilter}
+            onChange={e => setMoyenFilter(e.target.value)}
+            className="input-field text-xs py-1.5 px-3"
+          >
+            <option value="">Tous moyens</option>
+            <option value="ESPECES">Espèces</option>
+            <option value="VIREMENT">Virement</option>
+            <option value="CARTE_BANCAIRE">Carte bancaire</option>
+            <option value="EN_LIGNE">En ligne</option>
+          </select>
+          {(search || moyenFilter) && (
+            <button
+              onClick={() => { setSearch(''); setMoyenFilter(''); }}
+              className="text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer hover:bg-gray-50"
+              style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}
+            >
+              <X size={12} /> Effacer
+            </button>
+          )}
+        </div>
         <div className="flex gap-2">
           <button onClick={() => setShowExportModal(true)} className="btn-ghost text-xs flex items-center gap-1">
             <Download size={14} /> Exporter
@@ -185,7 +232,9 @@ export default function Payments() {
                 ))
               ) : payments.length === 0 ? (
                 <tr><td colSpan={8} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun paiement trouvé</td></tr>
-              ) : payments.map(p => (
+              ) : filteredPayments.length === 0 ? (
+                <tr><td colSpan={8} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun paiement ne correspond aux filtres</td></tr>
+              ) : filteredPayments.map(p => (
                 <tr key={p.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors" style={{ borderColor: '#F0EEE4' }}>
                   <td className="py-3 px-5" data-label="Joueur">
                     <div className="flex items-center gap-2.5">

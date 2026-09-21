@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coachesApi, categoriesApi } from '../api';
-import { Search, Plus, X, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, X, Pencil, Trash2, Key } from 'lucide-react';
 import { PhotoUpload, PhotoAvatar } from '../components/PhotoUpload';
 
 function getInitials(prenom, nom) {
   return ((prenom?.[0] || '') + (nom?.[0] || '')).toUpperCase();
 }
 
-const EMPTY_FORM = { prenom: '', nom: '', specialite: '', telephone: '', email: '', categorieIds: [], photoUrl: '' };
+const EMPTY_FORM = { prenom: '', nom: '', specialite: '', telephone: '', email: '', motDePasse: '', categorieIds: [], photoUrl: '' };
 
 export default function Coaches() {
   const queryClient = useQueryClient();
@@ -19,6 +19,9 @@ export default function Coaches() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [showResetModal, setShowResetModal] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [catFilter, setCatFilter] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['coaches', page, search],
@@ -61,9 +64,22 @@ export default function Coaches() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ id, motDePasse }) => coachesApi.resetPassword(id, motDePasse),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['coaches']);
+      setShowResetModal(null);
+      setResetPassword('');
+    },
+  });
+
   const coaches = data?.content || data || [];
   const totalPages = data?.totalPages || 1;
   const displayCategories = Array.isArray(categories) ? categories : [];
+
+  const filteredCoaches = catFilter
+    ? coaches.filter(c => c.categories?.some(cat => String(cat.id) === String(catFilter)))
+    : coaches;
 
   const openEdit = (c) => {
     setForm({
@@ -113,6 +129,25 @@ export default function Coaches() {
         </button>
       </div>
 
+      {/* Category filter chips */}
+      <div className="flex gap-2 overflow-x-auto pb-3 mb-1">
+        <button
+          onClick={() => setCatFilter('')}
+          className={`chip text-xs font-semibold px-3 py-2 rounded-full border cursor-pointer whitespace-nowrap ${!catFilter ? 'bg-pitch-dark border-pitch-dark text-white' : 'bg-white border-line text-ink-soft'}`}
+        >
+          Toutes catégories
+        </button>
+        {displayCategories.map(c => (
+          <button
+            key={c.id}
+            onClick={() => setCatFilter(c.id === catFilter ? '' : c.id)}
+            className={`chip text-xs font-semibold px-3 py-2 rounded-full border cursor-pointer whitespace-nowrap ${catFilter === c.id ? 'bg-pitch-dark border-pitch-dark text-white' : 'bg-white border-line text-ink-soft'}`}
+          >
+            {c.nom}
+          </button>
+        ))}
+      </div>
+
       {/* Table */}
       <div className="panel">
         <div className="overflow-x-auto">
@@ -129,9 +164,11 @@ export default function Coaches() {
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}><td colSpan={5} className="py-3 px-5"><div className="skeleton-row" /></td></tr>
                 ))
-              ) : coaches.length === 0 ? (
-                <tr><td colSpan={5} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun entraîneur trouvé</td></tr>
-              ) : coaches.map(c => (
+              ) : filteredCoaches.length === 0 ? (
+                <tr><td colSpan={5} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>
+                  {coaches.length === 0 ? 'Aucun entraîneur trouvé' : 'Aucun entraîneur ne correspond aux filtres'}
+                </td></tr>
+              ) : filteredCoaches.map(c => (
                 <tr key={c.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors" style={{ borderColor: '#F0EEE4' }}>
                   <td className="py-3 px-5" data-label="Entraîneur">
                     <div className="flex items-center gap-2.5">
@@ -153,6 +190,9 @@ export default function Coaches() {
                   <td className="py-3 px-5 font-mono text-[13px]" data-label="Téléphone">{c.telephone || '—'}</td>
                   <td className="py-3 px-5" data-label="Actions">
                     <div className="flex items-center">
+                      <button onClick={() => { setShowResetModal(c); setResetPassword(''); }} className="icon-btn" title="Réinitialiser le mot de passe" aria-label={`Réinitialiser le mot de passe de ${c.prenom} ${c.nom}`}>
+                        <Key size={16} />
+                      </button>
                       <button onClick={() => openEdit(c)} className="icon-btn" title="Modifier" aria-label={`Modifier ${c.prenom} ${c.nom}`}>
                         <Pencil size={16} />
                       </button>
@@ -217,6 +257,22 @@ export default function Coaches() {
                   <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="input-field" />
                 </div>
               </div>
+              {!showEditModal && (
+                <div>
+                  <label className="label">Mot de passe</label>
+                  <input
+                    type="password"
+                    value={form.motDePasse}
+                    onChange={e => setForm({...form, motDePasse: e.target.value})}
+                    className="input-field"
+                    placeholder="Min. 6 caractères"
+                    autoComplete="new-password"
+                  />
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--ink-soft)' }}>
+                    L'entraîneur pourra changer son mot de passe lors de sa première connexion.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="label">Catégories encadrées</label>
                 <div className="flex flex-col gap-1.5">
@@ -288,6 +344,49 @@ export default function Coaches() {
             </div>
             <div className="flex justify-end px-6 py-3.5 border-t" style={{ borderColor: 'var(--line)' }}>
               <button onClick={() => setCreatedCredentials(null)} className="btn-primary text-sm">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-5" style={{ background: 'rgba(18,32,26,.55)' }}>
+          <div className="bg-white w-full max-w-[400px] rounded-[10px] overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b" style={{ borderColor: 'var(--line)' }}>
+              <h3 className="font-bebas text-xl m-0" style={{ color: 'var(--pitch-dark)' }}>Réinitialiser le mot de passe</h3>
+              <button onClick={() => setShowResetModal(null)} className="text-xl cursor-pointer p-1" style={{ color: 'var(--ink-soft)' }}><X size={20} /></button>
+            </div>
+            <div className="px-6 py-5 flex flex-col gap-3.5">
+              <div className="p-3 rounded-lg text-sm" style={{ background: '#F0EEE4' }}>
+                <div><strong>{showResetModal.prenom} {showResetModal.nom}</strong></div>
+                <div style={{ color: 'var(--ink-soft)' }}>{showResetModal.email}</div>
+              </div>
+              <div>
+                <label className="label">Nouveau mot de passe</label>
+                <input
+                  type="password"
+                  value={resetPassword}
+                  onChange={e => setResetPassword(e.target.value)}
+                  className="input-field"
+                  placeholder="Min. 6 caractères"
+                  autoComplete="new-password"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                L'entraîneur devra changer son mot de passe lors de sa prochaine connexion.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2.5 px-6 py-3.5 border-t" style={{ borderColor: 'var(--line)' }}>
+              <button onClick={() => setShowResetModal(null)} className="btn-ghost text-sm">Annuler</button>
+              <button
+                onClick={() => resetPasswordMutation.mutate({ id: showResetModal.id, motDePasse: resetPassword })}
+                disabled={!resetPassword || resetPassword.length < 6 || resetPasswordMutation.isPending}
+                className="btn-primary text-sm"
+              >
+                {resetPasswordMutation.isPending ? 'Enregistrement...' : 'Réinitialiser'}
+              </button>
             </div>
           </div>
         </div>

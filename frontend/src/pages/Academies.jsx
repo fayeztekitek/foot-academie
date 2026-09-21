@@ -8,6 +8,8 @@ export default function Academies() {
   const [academies, setAcademies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [planFilter, setPlanFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingAcademy, setEditingAcademy] = useState(null);
   const [formData, setFormData] = useState({
@@ -29,11 +31,16 @@ export default function Academies() {
     }
   };
 
-  const filtered = academies.filter(a =>
-    a.nom?.toLowerCase().includes(search.toLowerCase()) ||
-    a.ville?.toLowerCase().includes(search.toLowerCase()) ||
-    a.slug?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = academies.filter(a => {
+    if (search) {
+      const q = search.toLowerCase();
+      if (!a.nom?.toLowerCase().includes(q) && !a.ville?.toLowerCase().includes(q) && !a.slug?.toLowerCase().includes(q)) return false;
+    }
+    if (planFilter && a.plan !== planFilter) return false;
+    if (activeFilter === 'active' && !a.active) return false;
+    if (activeFilter === 'inactive' && a.active) return false;
+    return true;
+  });
 
   const handleOpenModal = (academy = null) => {
     if (academy) {
@@ -123,6 +130,38 @@ export default function Academies() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
+      </div>
+
+      {/* Additional filters */}
+      <div className="flex gap-3 mb-4 flex-wrap items-center">
+        <select
+          value={planFilter}
+          onChange={e => setPlanFilter(e.target.value)}
+          className="input-field text-xs py-1.5 px-3"
+        >
+          <option value="">Tous les plans</option>
+          <option value="FREE">Gratuit</option>
+          <option value="PRO">Professionnel</option>
+          <option value="PREMIUM">Premium</option>
+        </select>
+        <select
+          value={activeFilter}
+          onChange={e => setActiveFilter(e.target.value)}
+          className="input-field text-xs py-1.5 px-3"
+        >
+          <option value="">Tous les statuts</option>
+          <option value="active">Actif</option>
+          <option value="inactive">Inactif</option>
+        </select>
+        {(planFilter || activeFilter) && (
+          <button
+            onClick={() => { setPlanFilter(''); setActiveFilter(''); }}
+            className="text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer hover:bg-gray-50"
+            style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}
+          >
+            Effacer filtres
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

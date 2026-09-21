@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { slotsApi } from '../api';
+import { Search, X } from 'lucide-react';
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -35,6 +37,8 @@ function getHourIndex(heureDebut) {
 
 export default function Training() {
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [terrainFilter, setTerrainFilter] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['slots'],
     queryFn: () => slotsApi.getAll().then(r => r.data),
@@ -42,8 +46,21 @@ export default function Training() {
 
   const slots = Array.isArray(data) ? data : data?.content || [];
 
+  const filteredSlots = slots.filter(s => {
+    if (search) {
+      const q = search.toLowerCase();
+      const matchCat = (s.categorieNom || '').toLowerCase().includes(q);
+      const matchCoach = `${s.entraineurPrenom || ''} ${s.entraineurNom || ''}`.toLowerCase().includes(q);
+      if (!matchCat && !matchCoach) return false;
+    }
+    if (terrainFilter && s.terrain !== terrainFilter) return false;
+    return true;
+  });
+
+  const terrains = [...new Set(slots.map(s => s.terrain).filter(Boolean))];
+
   const grid = {};
-  slots.forEach(slot => {
+  filteredSlots.forEach(slot => {
     const dayIdx = getDayIndex(slot.jourSemaine);
     const hourIdx = getHourIndex(slot.heureDebut);
     if (dayIdx >= 0 && hourIdx >= 0) {
@@ -65,6 +82,38 @@ export default function Training() {
   return (
     <div>
       <h2 className="font-bebas text-2xl mb-5" style={{ color: 'var(--pitch-dark)' }}>Calendrier des entraînements</h2>
+
+      {/* Filters */}
+      <div className="flex gap-3 mb-4 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+          <Search size={15} className="absolute left-3 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher catégorie ou entraîneur…"
+            className="input-field pl-9 text-xs"
+          />
+        </div>
+        {terrains.length > 0 && (
+          <select
+            value={terrainFilter}
+            onChange={e => setTerrainFilter(e.target.value)}
+            className="input-field text-xs py-1.5 px-3"
+          >
+            <option value="">Tous terrains</option>
+            {terrains.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        )}
+        {(search || terrainFilter) && (
+          <button
+            onClick={() => { setSearch(''); setTerrainFilter(''); }}
+            className="text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer hover:bg-gray-50"
+            style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}
+          >
+            <X size={12} /> Effacer
+          </button>
+        )}
+      </div>
 
       <div className="overflow-x-auto">
         <div className="border min-w-[680px]" style={{ borderColor: 'var(--line)', background: 'var(--line)', display: 'grid', gridTemplateColumns: `70px repeat(7, 1fr)`, gap: '1px' }}>

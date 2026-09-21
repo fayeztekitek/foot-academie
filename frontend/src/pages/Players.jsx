@@ -47,6 +47,8 @@ export default function Players() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [catFilter, setCatFilter] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('');
+  const [posteFilter, setPosteFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [showFreqModal, setShowFreqModal] = useState(null);
@@ -126,6 +128,12 @@ export default function Players() {
   const displayCategories = Array.isArray(categories) ? categories : [];
   const displayParents = Array.isArray(parents) ? parents : [];
 
+  const filteredPlayers = players.filter(p => {
+    if (paymentFilter && p.statutPaiement !== paymentFilter) return false;
+    if (posteFilter && p.postePrincipal !== posteFilter) return false;
+    return true;
+  });
+
   const openEdit = (p) => {
     setForm({
       prenom: p.prenom || '',
@@ -177,6 +185,45 @@ export default function Players() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Secondary filters */}
+      <div className="flex gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold" style={{ color: 'var(--ink-soft)' }}>Paiement :</label>
+          <select
+            value={paymentFilter}
+            onChange={e => { setPaymentFilter(e.target.value); setPage(0); }}
+            className="input-field text-xs py-1.5 px-3"
+          >
+            <option value="">Tous</option>
+            <option value="A_JOUR">À jour</option>
+            <option value="EN_ATTENTE">En attente</option>
+            <option value="EN_RETARD">En retard</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold" style={{ color: 'var(--ink-soft)' }}>Poste :</label>
+          <select
+            value={posteFilter}
+            onChange={e => { setPosteFilter(e.target.value); setPage(0); }}
+            className="input-field text-xs py-1.5 px-3"
+          >
+            <option value="">Tous</option>
+            {POSTES.map(p => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+        {(paymentFilter || posteFilter) && (
+          <button
+            onClick={() => { setPaymentFilter(''); setPosteFilter(''); setPage(0); }}
+            className="text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer hover:bg-gray-50"
+            style={{ color: 'var(--ink-soft)', borderColor: 'var(--line)' }}
+          >
+            <X size={12} /> Effacer filtres
+          </button>
+        )}
         <button onClick={() => { setForm(EMPTY_FORM); setShowCreateModal(true); }} className="btn-primary flex items-center gap-1.5 text-sm whitespace-nowrap" aria-label="Créer un nouveau joueur">
           <Plus size={15} /> Nouveau joueur
         </button>
@@ -200,7 +247,9 @@ export default function Players() {
                 ))
               ) : players.length === 0 ? (
                 <tr><td colSpan={10} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun joueur trouvé</td></tr>
-              ) : players.map(p => (
+              ) : filteredPlayers.length === 0 ? (
+                <tr><td colSpan={10} className="py-8 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun joueur ne correspond aux filtres</td></tr>
+              ) : filteredPlayers.map(p => (
                 <tr key={p.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors" style={{ borderColor: '#F0EEE4' }}>
                   <td className="py-3 px-5" data-label="Joueur">
                     <div className="flex items-center gap-2.5 cursor-pointer hover:opacity-80" onClick={() => navigate(`/players/${p.id}`)}>

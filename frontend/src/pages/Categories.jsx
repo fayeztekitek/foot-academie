@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi, slotsApi, coachesApi } from '../api';
-import { Plus, X, Pencil, Trash2 } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Search } from 'lucide-react';
 
 const DAYS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
 const TERRAINS = ['Terrain principal', 'Terrain secondaire', 'Terrain A', 'Terrain B', 'Salle'];
@@ -16,6 +16,10 @@ export default function Categories() {
   const [deleteSlotConfirm, setDeleteSlotConfirm] = useState(null);
   const [catForm, setCatForm] = useState({ nom: '', description: '', ageMin: '', ageMax: '' });
   const [slotForm, setSlotForm] = useState({ jourSemaine: 'LUNDI', heureDebut: '', heureFin: '', categorieId: '', entraineurId: '', terrain: '' });
+  const [slotSearch, setSlotSearch] = useState('');
+  const [slotDayFilter, setSlotDayFilter] = useState('');
+  const [slotCatFilter, setSlotCatFilter] = useState('');
+  const [catSearch, setCatSearch] = useState('');
 
   const { data: categories, isLoading: catLoading } = useQuery({
     queryKey: ['categories'],
@@ -81,6 +85,27 @@ export default function Categories() {
   const slotsList = Array.isArray(slots) ? slots : slots?.content || [];
   const coachList = Array.isArray(coaches) ? coaches : [];
 
+  const filteredSlots = slotsList.filter(s => {
+    if (slotSearch) {
+      const q = slotSearch.toLowerCase();
+      const matchCat = (s.categorieNom || '').toLowerCase().includes(q);
+      const matchCoach = `${s.entraineurPrenom || ''} ${s.entraineurNom || ''}`.toLowerCase().includes(q);
+      const matchTerrain = (s.terrain || '').toLowerCase().includes(q);
+      if (!matchCat && !matchCoach && !matchTerrain) return false;
+    }
+    if (slotDayFilter && s.jourSemaine !== slotDayFilter) return false;
+    if (slotCatFilter && String(s.categorieId) !== String(slotCatFilter)) return false;
+    return true;
+  });
+
+  const filteredCats = cats.filter(c => {
+    if (catSearch) {
+      const q = catSearch.toLowerCase();
+      return (c.nom || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   const openEditCat = (c) => {
     setCatForm({ nom: c.nom || '', description: c.description || '', ageMin: c.ageMin || '', ageMax: c.ageMax || '' });
     setEditCat(c);
@@ -123,6 +148,26 @@ export default function Categories() {
             <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>Créneaux d'entraînement</h3>
             <button onClick={() => { setSlotForm({ jourSemaine: 'LUNDI', heureDebut: '', heureFin: '', categorieId: '', entraineurId: '', terrain: '' }); setEditSlot(null); setShowSlotModal(true); }} className="text-xs font-semibold no-underline cursor-pointer" style={{ color: 'var(--pitch)' }}>+ Ajouter</button>
           </div>
+          {/* Slot filters */}
+          <div className="px-5 py-3 flex gap-3 flex-wrap items-center border-b" style={{ borderColor: 'var(--line)' }}>
+            <div className="relative flex-1 min-w-[150px]">
+              <Search size={14} className="absolute left-2.5 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+              <input
+                value={slotSearch}
+                onChange={e => setSlotSearch(e.target.value)}
+                placeholder="Rechercher catégorie, entraîneur, terrain…"
+                className="input-field pl-8 text-xs py-1.5"
+              />
+            </div>
+            <select value={slotDayFilter} onChange={e => setSlotDayFilter(e.target.value)} className="input-field text-xs py-1.5 px-2">
+              <option value="">Tous les jours</option>
+              {DAYS.map(d => <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>)}
+            </select>
+            <select value={slotCatFilter} onChange={e => setSlotCatFilter(e.target.value)} className="input-field text-xs py-1.5 px-2">
+              <option value="">Toutes catégories</option>
+              {cats.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+            </select>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[13.5px]">
               <thead>
@@ -135,9 +180,9 @@ export default function Categories() {
               <tbody>
                 {slotLoading ? (
                   <tr><td colSpan={6} className="py-6 text-center" style={{ color: 'var(--ink-soft)' }}>Chargement...</td></tr>
-                ) : slotsList.length === 0 ? (
-                  <tr><td colSpan={6} className="py-6 text-center" style={{ color: 'var(--ink-soft)' }}>Aucun créneau</td></tr>
-                ) : slotsList.map(s => (
+                ) : filteredSlots.length === 0 ? (
+                  <tr><td colSpan={6} className="py-6 text-center" style={{ color: 'var(--ink-soft)' }}>{slotsList.length === 0 ? 'Aucun créneau' : 'Aucun créneau ne correspond aux filtres'}</td></tr>
+                ) : filteredSlots.map(s => (
                   <tr key={s.id} className="border-b last:border-b-0" style={{ borderColor: '#F0EEE4' }}>
                     <td className="py-3 px-4">{s.jourSemaine?.charAt(0) + s.jourSemaine?.slice(1).toLowerCase()}</td>
                     <td className="py-3 px-4 font-mono text-[13px]">{s.heureDebut}–{s.heureFin}</td>
@@ -167,12 +212,23 @@ export default function Categories() {
             <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>Catégories</h3>
             <button onClick={() => { setCatForm({ nom: '', description: '', ageMin: '', ageMax: '' }); setEditCat(null); setShowCatModal(true); }} className="text-xs font-semibold no-underline cursor-pointer" style={{ color: 'var(--pitch)' }}>+ Ajouter</button>
           </div>
+          <div className="px-5 py-3 border-b" style={{ borderColor: 'var(--line)' }}>
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-2.5" style={{ color: 'var(--ink-soft)' }} />
+              <input
+                value={catSearch}
+                onChange={e => setCatSearch(e.target.value)}
+                placeholder="Rechercher une catégorie…"
+                className="input-field pl-8 text-xs py-1.5"
+              />
+            </div>
+          </div>
           <div className="py-1">
             {catLoading ? (
               <div className="py-6 text-center" style={{ color: 'var(--ink-soft)' }}>Chargement...</div>
-            ) : cats.length === 0 ? (
-              <div className="py-6 text-center" style={{ color: 'var(--ink-soft)' }}>Aucune catégorie</div>
-            ) : cats.map(c => (
+            ) : filteredCats.length === 0 ? (
+              <div className="py-6 text-center" style={{ color: 'var(--ink-soft)' }}>{cats.length === 0 ? 'Aucune catégorie' : 'Aucune catégorie ne correspond'}</div>
+            ) : filteredCats.map(c => (
               <div key={c.id} className="flex gap-3 px-5 py-3 border-b last:border-b-0 items-center" style={{ borderColor: '#F0EEE4' }}>
                 <div className="flex-1">
                   <div className="text-sm font-semibold">{c.nom}</div>
