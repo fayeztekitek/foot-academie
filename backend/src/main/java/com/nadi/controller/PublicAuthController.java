@@ -2,13 +2,17 @@ package com.nadi.controller;
 
 import com.nadi.dto.TenantPublicResponse;
 import com.nadi.model.Academie;
+import com.nadi.model.Utilisateur;
 import com.nadi.repository.AcademieRepository;
+import com.nadi.repository.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -16,6 +20,8 @@ import java.util.List;
 public class PublicAuthController {
 
     private final AcademieRepository academieRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/tenants")
     public List<TenantPublicResponse> getActiveTenants() {
@@ -29,5 +35,21 @@ public class PublicAuthController {
                         .logoUrl(a.getLogoUrl())
                         .build())
                 .toList();
+    }
+
+    @PostMapping("/admin/reset-password")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Map<String, String>> adminResetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String newPassword = body.get("newPassword");
+        if (email == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email et mot de passe (min 6 car.) requis"));
+        }
+        Utilisateur user = utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec cet email"));
+        user.setMotDePasseHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        utilisateurRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé pour " + email));
     }
 }
