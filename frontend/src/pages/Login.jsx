@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useDemo } from '../demo/DemoProvider';
-import { LogIn, Smartphone, Settings, X } from 'lucide-react';
+import { LogIn, Smartphone, Settings, X, Building2 } from 'lucide-react';
+import { authApi } from '../api/auth';
 
 export default function Login() {
   const { login } = useAuth();
@@ -13,13 +14,34 @@ export default function Login() {
   const [showSettings, setShowSettings] = useState(false);
   const [tempUrl, setTempUrl] = useState(backendUrl);
 
+  const [tenants, setTenants] = useState([]);
+  const [selectedTenantId, setSelectedTenantId] = useState(null);
+  const [tenantsLoading, setTenantsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const { data } = await authApi.getTenants();
+        setTenants(data);
+        if (data.length === 1) {
+          setSelectedTenantId(data[0].id);
+        }
+      } catch {
+        // Silently fail — tenants will be empty
+      } finally {
+        setTenantsLoading(false);
+      }
+    };
+    fetchTenants();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       disableDemo();
-      await login(email, motDePasse);
+      await login(email, motDePasse, selectedTenantId);
     } catch (err) {
       setError(err.response?.data?.message || 'Identifiants incorrects');
     } finally {
@@ -138,6 +160,30 @@ export default function Login() {
         <div className="panel p-6">
           <h2 className="font-bebas text-2xl mb-5" style={{ color: 'var(--pitch-dark)' }}>Connexion</h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Tenant selector */}
+            <div>
+              <label className="label">Académie</label>
+              <div className="relative">
+                <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-soft)' }} />
+                <select
+                  value={selectedTenantId || ''}
+                  onChange={e => setSelectedTenantId(Number(e.target.value))}
+                  className="input-field pl-9"
+                  required
+                  disabled={tenantsLoading}
+                >
+                  <option value="" disabled>
+                    {tenantsLoading ? 'Chargement...' : 'Sélectionner une académie'}
+                  </option>
+                  {tenants.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.nom}{t.ville ? ` — ${t.ville}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="label">Email</label>
               <input
@@ -169,7 +215,7 @@ export default function Login() {
             )}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !selectedTenantId}
               className="btn-primary w-full flex items-center justify-center gap-2 py-3"
             >
               {loading ? (
@@ -182,8 +228,6 @@ export default function Login() {
               )}
             </button>
           </form>
-
-
         </div>
 
         {/* Demo mode card */}

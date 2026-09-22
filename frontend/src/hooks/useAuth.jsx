@@ -28,17 +28,17 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, tenantId) => {
     if (isDemoMode()) {
-      const result = await handleMockRequest('POST', '/auth/login', { email, motDePasse: password });
+      const result = await handleMockRequest('POST', '/auth/login', { email, motDePasse: password, tenantId });
       const { data } = result;
       localStorage.setItem('demo_user_role', data.role);
       localStorage.setItem('demo_user_email', data.email);
-      setUser({ token: data.accessToken, role: data.role, email: data.email, mustChangePassword: false });
+      setUser({ token: data.accessToken, role: data.role, email: data.email, mustChangePassword: false, tenantId: data.tenantId });
       return data;
     }
     localStorage.removeItem('nadi_demo_mode');
-    const { data } = await authApi.login(email, password);
+    const { data } = await authApi.login(email, password, tenantId);
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     localStorage.setItem('userRole', data.role);

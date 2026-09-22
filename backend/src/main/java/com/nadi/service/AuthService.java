@@ -8,6 +8,7 @@ import com.nadi.security.JwtTokenProvider;
 import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -25,10 +26,14 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         Utilisateur user = utilisateurRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Identifiants incorrects"));
+                .orElseThrow(() -> new BadCredentialsException("Identifiants incorrects"));
 
         if (Boolean.FALSE.equals(user.getActif())) {
-            throw new RuntimeException("Compte désactivé");
+            throw new BadCredentialsException("Identifiants incorrects");
+        }
+
+        if (!user.getTenantId().equals(request.getTenantId())) {
+            throw new BadCredentialsException("Identifiants incorrects");
         }
 
         TenantContext.setTenantId(user.getTenantId());

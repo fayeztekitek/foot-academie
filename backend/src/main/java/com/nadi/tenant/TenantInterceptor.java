@@ -24,6 +24,10 @@ public class TenantInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        if (path.startsWith("/api/auth/")) {
+            return true;
+        }
+
         if (path.contains("/invitations/accept") || path.contains("/invitations/by-token/")) {
             return true;
         }

@@ -37,7 +37,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/auth/login", "/auth/refresh").permitAll()
+                .requestMatchers("/auth/login", "/auth/refresh", "/auth/tenants").permitAll()
                 .requestMatchers("/invitations/accept", "/invitations/by-token/**").permitAll()
                 .requestMatchers("/onboarding").permitAll()
                 .anyRequest().authenticated()
