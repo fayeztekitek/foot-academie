@@ -5,6 +5,7 @@ import com.nadi.model.Academie;
 import com.nadi.model.Utilisateur;
 import com.nadi.repository.AcademieRepository;
 import com.nadi.repository.UtilisateurRepository;
+import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,11 +46,19 @@ public class PublicAuthController {
         if (email == null || newPassword == null || newPassword.length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email et mot de passe (min 6 car.) requis"));
         }
-        Utilisateur user = utilisateurRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec cet email"));
-        user.setMotDePasseHash(passwordEncoder.encode(newPassword));
-        user.setMustChangePassword(false);
-        utilisateurRepository.save(user);
+        Long previousTenantId = TenantContext.getTenantId();
+        try {
+            TenantContext.clear();
+            Utilisateur user = utilisateurRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec cet email"));
+            user.setMotDePasseHash(passwordEncoder.encode(newPassword));
+            user.setMustChangePassword(false);
+            utilisateurRepository.save(user);
+        } finally {
+            if (previousTenantId != null) {
+                TenantContext.setTenantId(previousTenantId);
+            }
+        }
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé pour " + email));
     }
 }
