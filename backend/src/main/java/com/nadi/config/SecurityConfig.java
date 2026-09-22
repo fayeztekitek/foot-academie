@@ -39,7 +39,6 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/auth/login", "/auth/refresh", "/auth/tenants").permitAll()
                 .requestMatchers("/invitations/accept", "/invitations/by-token/**").permitAll()
-                .requestMatchers("/onboarding").permitAll()
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers

@@ -60,7 +60,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/invite/:token" element={<AcceptInvitation />} />
-      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/onboarding" element={user?.role === 'SUPER_ADMIN' ? <Onboarding /> : <Navigate to="/login" replace />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<SuperAdminDashboardWrapper />} />
         <Route path="super-admin" element={<SuperAdminDashboard />} />
