@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useDemo } from '../demo/DemoProvider';
-import { LogIn, Smartphone, Settings, X, Building2 } from 'lucide-react';
+import { LogIn, Smartphone, Settings, X, Building2, RefreshCw } from 'lucide-react';
 import { authApi } from '../api/auth';
 
 export default function Login() {
@@ -17,21 +17,26 @@ export default function Login() {
   const [tenants, setTenants] = useState([]);
   const [selectedTenantId, setSelectedTenantId] = useState(null);
   const [tenantsLoading, setTenantsLoading] = useState(true);
+  const [tenantsError, setTenantsError] = useState(null);
+
+  const fetchTenants = async () => {
+    setTenantsLoading(true);
+    setTenantsError(null);
+    try {
+      const { data } = await authApi.getTenants();
+      setTenants(data);
+      if (data.length === 1) {
+        setSelectedTenantId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to load tenants:', err);
+      setTenantsError('Impossible de charger les académies. Vérifiez l\'URL du serveur.');
+    } finally {
+      setTenantsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTenants = async () => {
-      try {
-        const { data } = await authApi.getTenants();
-        setTenants(data);
-        if (data.length === 1) {
-          setSelectedTenantId(data[0].id);
-        }
-      } catch {
-        // Silently fail — tenants will be empty
-      } finally {
-        setTenantsLoading(false);
-      }
-    };
     fetchTenants();
   }, []);
 
@@ -163,25 +168,41 @@ export default function Login() {
             {/* Tenant selector */}
             <div>
               <label className="label">Académie</label>
-              <div className="relative">
-                <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-soft)' }} />
-                <select
-                  value={selectedTenantId || ''}
-                  onChange={e => setSelectedTenantId(Number(e.target.value))}
-                  className="input-field pl-9"
-                  required
-                  disabled={tenantsLoading}
-                >
-                  <option value="" disabled>
-                    {tenantsLoading ? 'Chargement...' : 'Sélectionner une académie'}
-                  </option>
-                  {tenants.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.nom}{t.ville ? ` — ${t.ville}` : ''}
+              {tenantsError ? (
+                <div className="flex flex-col gap-2">
+                  <div className="text-xs px-3 py-2 rounded-lg" style={{ background: '#FBE7E7', color: 'var(--red)' }}>
+                    {tenantsError}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchTenants}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border self-start"
+                    style={{ borderColor: 'var(--line)', color: 'var(--ink-soft)' }}
+                  >
+                    <RefreshCw size={12} /> Réessayer
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-soft)' }} />
+                  <select
+                    value={selectedTenantId || ''}
+                    onChange={e => setSelectedTenantId(Number(e.target.value))}
+                    className="input-field pl-9"
+                    required
+                    disabled={tenantsLoading}
+                  >
+                    <option value="" disabled>
+                      {tenantsLoading ? 'Chargement...' : 'Sélectionner une académie'}
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {tenants.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.nom}{t.ville ? ` — ${t.ville}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div>

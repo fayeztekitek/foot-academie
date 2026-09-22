@@ -77,7 +77,8 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "https://frontend-theta-navy-p2kodej171.vercel.app",
                 "https://frontend-f1-tek.vercel.app",
-                "capacitor://localhost"
+                "capacitor://localhost",
+                "https://localhost"
             ));
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
