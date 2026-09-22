@@ -6,12 +6,14 @@ export default function Import() {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [importType, setImportType] = useState(null);
 
   const handleImport = async (type, file) => {
     if (!file) return;
     setImporting(true);
     setResult(null);
     setError(null);
+    setImportType(type);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -88,9 +90,15 @@ export default function Import() {
             <div>
               <h4 className="font-medium text-sm" style={{ color: 'var(--grass)' }}>Import terminé</h4>
               <ul className="text-sm mt-1 space-y-0.5" style={{ color: '#1F5A3B' }}>
-                <li>Joueurs importés: {result.joueursImported}</li>
-                <li>Parents importés: {result.parentsImported}</li>
-                <li>Paiements importés: {result.paiementsImported}</li>
+                {importType === 'players' && (
+                  <>
+                    <li>Joueurs importés: {result.joueursImported || 0}</li>
+                    <li>Parents importés: {result.parentsImported || 0}</li>
+                  </>
+                )}
+                {importType === 'payments' && (
+                  <li>Paiements importés: {result.paiementsImported || 0}</li>
+                )}
                 {result.erreurs > 0 && <li style={{ color: 'var(--red)' }}>Erreurs: {result.erreurs}</li>}
               </ul>
               {result.messages?.length > 0 && (

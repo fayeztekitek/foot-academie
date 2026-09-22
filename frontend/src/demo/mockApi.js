@@ -558,6 +558,15 @@ export const MOCK_API = {
       return { data: csv, headers: { 'content-type': 'text/csv' } };
     }
   },
+  '/reports/payments/excel': {
+    GET: () => {
+      const rows = DB.payments.map(p =>
+        `<Row><Cell><Data ss:Type="String">${p.joueurPrenom} ${p.joueurNom}</Data></Cell><Cell><Data ss:Type="String">${p.parentPrenom} ${p.parentNom}</Data></Cell><Cell><Data ss:Type="String">${p.montant} TND</Data></Cell><Cell><Data ss:Type="String">${p.statut}</Data></Cell><Cell><Data ss:Type="String">${p.dateEcheance || ''}</Data></Cell></Row>`
+      ).join('\n');
+      const xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Paiements"><Table><Row><Cell><Data ss:Type="String">Joueur</Data></Cell><Cell><Data ss:Type="String">Parent</Data></Cell><Cell><Data ss:Type="String">Montant</Data></Cell><Cell><Data ss:Type="String">Statut</Data></Cell><Cell><Data ss:Type="String">Date</Data></Cell></Row>${rows}</Table></Worksheet></Workbook>`;
+      return { data: xml, headers: { 'content-type': 'application/vnd.ms-excel' } };
+    }
+  },
 
   // ─── Audit ──────────────────────────────────────
   '/audit': {

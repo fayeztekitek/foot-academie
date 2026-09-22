@@ -123,15 +123,20 @@ export default function Payments() {
       const res = type === 'csv'
         ? await reportsApi.exportCsv(exportDates.start, exportDates.end)
         : await reportsApi.exportExcel(exportDates.start, exportDates.end);
-      const blob = new Blob([res.data]);
+      const mimeType = type === 'csv' ? 'text/csv' : 'application/vnd.ms-excel';
+      const blob = new Blob([res.data], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `paiements-${exportDates.start}-${exportDates.end}.${type === 'csv' ? 'csv' : 'xlsx'}`;
+      a.download = `paiements-${exportDates.start}-${exportDates.end}.${type === 'csv' ? 'csv' : 'xls'}`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setShowExportModal(false);
     } catch (e) {
       console.error('Export failed', e);
+      alert('Erreur lors de l\'export. Veuillez réessayer.');
     }
   };
 

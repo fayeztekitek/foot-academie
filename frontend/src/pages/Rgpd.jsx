@@ -16,12 +16,31 @@ export default function Rgpd() {
     queryFn: () => api.get('/rgpd/consents').then(r => r.data),
   });
 
-  const handleExportPdf = () => {
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExportPdf = async () => {
     if (!exportDates.start || !exportDates.end) return;
-    window.open(
-      `${api.defaults.baseURL}/rgpd/consents/export?start=${exportDates.start}&end=${exportDates.end}`,
-      '_blank'
-    );
+    setExportLoading(true);
+    try {
+      const res = await api.get('/rgpd/consents/export', {
+        params: { start: exportDates.start, end: exportDates.end },
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `registre_consentement_${exportDates.start}_${exportDates.end}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF export failed', err);
+      alert('Erreur lors de l\'export PDF. Veuillez réessayer.');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const formatType = (type) => {
@@ -96,8 +115,8 @@ export default function Rgpd() {
               onChange={e => setExportDates({ ...exportDates, end: e.target.value })}
               className="input-field" />
           </div>
-          <button onClick={handleExportPdf} className="btn-primary flex items-center gap-2 text-sm">
-            <Download size={14} /> Exporter PDF
+          <button onClick={handleExportPdf} disabled={exportLoading} className="btn-primary flex items-center gap-2 text-sm">
+            <Download size={14} /> {exportLoading ? 'Export en cours...' : 'Exporter PDF'}
           </button>
         </div>
       </div>

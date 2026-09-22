@@ -1,11 +1,11 @@
 import api from './client';
 
 export const rgpdApi = {
-  getConsentRegister: () => api.get('/rgpd/consent-register'),
+  getConsents: () => api.get('/rgpd/consents'),
 
-  getByParent: (parentId) => api.get(`/rgpd/consent-register/parent/${parentId}`),
+  getByParent: (parentId) => api.get(`/rgpd/consents`, { params: { parentId } }),
 
-  record: (data) => api.post('/rgpd/consent-register', data),
+  record: (data) => api.post('/rgpd/consents', data),
 
   exportCsv: () => api.get('/rgpd/consent-register/export/csv', { responseType: 'blob' }),
 };
