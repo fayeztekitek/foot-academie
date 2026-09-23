@@ -8,38 +8,38 @@ export default {
     extend: {
       colors: {
         pitch: {
-          dark: '#0F1D17',
-          DEFAULT: '#1A3A2D',
+          dark: 'var(--color-pitch-dark)',
+          DEFAULT: 'var(--color-pitch)',
         },
         grass: {
-          DEFAULT: '#22884E',
-          light: '#E6F5EC',
-          dark: '#1D7A44',
+          DEFAULT: 'var(--color-grass)',
+          light: 'var(--color-grass-light)',
+          dark: 'var(--primitive-color-grass-dark)',
         },
         gold: {
-          DEFAULT: '#C9A227',
-          light: '#FBF5E0',
+          DEFAULT: 'var(--color-gold)',
+          light: 'var(--color-gold-light)',
         },
         red: {
-          DEFAULT: '#DC3545',
-          light: '#FDE8EA',
-          dark: '#B91C1C',
+          DEFAULT: 'var(--color-red)',
+          light: 'var(--color-red-light)',
+          dark: 'var(--primitive-color-red-dark)',
         },
         blue: {
-          DEFAULT: '#2563EB',
-          light: '#EFF4FF',
+          DEFAULT: 'var(--color-blue)',
+          light: 'var(--color-blue-light)',
         },
         ink: {
-          DEFAULT: '#111827',
-          soft: '#6B7280',
-          muted: '#9CA3AF',
+          DEFAULT: 'var(--color-ink)',
+          soft: 'var(--color-ink-soft)',
+          muted: 'var(--color-ink-muted)',
         },
         line: {
-          DEFAULT: '#E5E7EB',
-          strong: '#D1D5DB',
+          DEFAULT: 'var(--color-line)',
+          strong: 'var(--color-line-strong)',
         },
-        bg: '#F7F6F3',
-        card: '#FFFFFF',
+        bg: 'var(--color-bg)',
+        card: 'var(--color-card)',
       },
       fontFamily: {
         bebas: ['"Bebas Neue"', 'sans-serif'],
@@ -47,14 +47,14 @@ export default {
         mono: ['"Roboto Mono"', 'monospace'],
       },
       borderRadius: {
-        'lg': '10px',
-        'xl': '14px',
-        '2xl': '20px',
+        'lg': 'var(--primitive-radius-lg)',
+        'xl': 'var(--primitive-radius-xl)',
+        '2xl': 'var(--primitive-radius-2xl)',
       },
       boxShadow: {
-        'card': '0 1px 2px rgba(0,0,0,.04)',
-        'card-hover': '0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -1px rgba(0,0,0,.04)',
-        'modal': '0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04)',
+        'card': 'var(--card-shadow)',
+        'card-hover': 'var(--card-shadow-hover)',
+        'modal': 'var(--primitive-shadow-modal)',
       },
       animation: {
         'slide-up': 'slide-up .25s ease-out',

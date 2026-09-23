@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "tokens:generate": "node ../.claude/skills/design-system/scripts/generate-tokens.cjs --config src/design-tokens.json -o src/design-tokens.css",
+    "tokens:validate": "node ../.claude/skills/design-system/scripts/validate-tokens.cjs --dir src/"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
