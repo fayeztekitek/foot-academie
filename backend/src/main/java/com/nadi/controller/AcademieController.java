@@ -62,4 +62,10 @@ public class AcademieController {
     public ResponseEntity<AcademieResponse> toggleActive(@PathVariable Long id) {
         return ResponseEntity.ok(academieService.toggleActive(id));
     }
+
+    @PostMapping("/{id}/deactivate-if-unpaid")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<AcademieResponse> deactivateIfUnpaid(@PathVariable Long id) {
+        return ResponseEntity.ok(academieService.deactivateIfUnpaid(id));
+    }
 }

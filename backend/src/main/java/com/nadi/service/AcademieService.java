@@ -3,13 +3,17 @@ package com.nadi.service;
 import com.nadi.dto.AcademieRequest;
 import com.nadi.dto.AcademieResponse;
 import com.nadi.model.Academie;
-import com.nadi.model.Utilisateur;
+import com.nadi.model.Abonnement;
 import com.nadi.repository.AcademieRepository;
+import com.nadi.repository.AbonnementRepository;
 import com.nadi.repository.JoueurRepository;
 import com.nadi.repository.ParentRepository;
 import com.nadi.repository.EntraineurRepository;
 import com.nadi.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,14 +21,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AcademieService {
 
     private final AcademieRepository academieRepository;
+    private final AbonnementRepository abonnementRepository;
     private final JoueurRepository joueurRepository;
     private final ParentRepository parentRepository;
     private final EntraineurRepository entraineurRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public Page<AcademieResponse> listAll(Pageable pageable) {
@@ -82,10 +91,32 @@ public class AcademieService {
 
     @Transactional
     public void delete(Long id) {
-        if (!academieRepository.existsById(id)) {
-            throw new RuntimeException("Académie non trouvée avec l'id: " + id);
+        Academie academie = academieRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Académie non trouvée avec l'id: " + id));
+
+        Long tenantId = academie.getId();
+        log.info("Deleting academie id={}, slug={}, tenantId={}", id, academie.getSlug(), tenantId);
+
+        TenantContext.clear();
+
+        String[] tablesInOrder = {
+            "consent_log", "consentement_rgpd", "device_token", "notification", "invitation",
+            "note_joueur", "absence", "paiement", "convocation", "document", "facture",
+            "entraineur", "parent", "joueur", "creneau", "categorie",
+            "abonnement", "evenement", "audit_log", "utilisateur"
+        };
+
+        for (String table : tablesInOrder) {
+            int deleted = entityManager.createNativeQuery("DELETE FROM " + table + " WHERE tenant_id = ?1")
+                    .setParameter(1, tenantId)
+                    .executeUpdate();
+            if (deleted > 0) {
+                log.info("Deleted {} rows from {}", deleted, table);
+            }
         }
+
         academieRepository.deleteById(id);
+        log.info("Academie id={} deleted successfully", id);
     }
 
     @Transactional
@@ -96,6 +127,33 @@ public class AcademieService {
         academie.setActive(!academie.getActive());
         if (academie.getActive() && academie.getDateActivation() == null) {
             academie.setDateActivation(LocalDate.now());
+        }
+
+        return toResponse(academieRepository.save(academie));
+    }
+
+    @Transactional
+    public AcademieResponse deactivateIfUnpaid(Long id) {
+        Academie academie = academieRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Académie non trouvée avec l'id: " + id));
+
+        Long previousTenantId = TenantContext.getTenantId();
+        try {
+            TenantContext.clear();
+            boolean hasActiveSubscription = abonnementRepository
+                    .findByTenantIdAndStatut(academie.getId(), Abonnement.StatutAbonnement.ACTIF)
+                    .isPresent();
+
+            if (!hasActiveSubscription) {
+                academie.setActive(false);
+                log.info("Academie id={} deactivated: no active subscription", id);
+            } else {
+                log.info("Academie id={} has active subscription, not deactivating", id);
+            }
+        } finally {
+            if (previousTenantId != null) {
+                TenantContext.setTenantId(previousTenantId);
+            }
         }
 
         return toResponse(academieRepository.save(academie));
