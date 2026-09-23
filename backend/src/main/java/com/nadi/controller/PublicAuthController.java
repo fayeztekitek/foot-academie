@@ -49,8 +49,10 @@ public class PublicAuthController {
         Long previousTenantId = TenantContext.getTenantId();
         try {
             TenantContext.clear();
-            Utilisateur user = utilisateurRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec cet email"));
+            Utilisateur user = utilisateurRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(404).body(Map.of("message", "Utilisateur non trouvé avec cet email: " + email));
+            }
             user.setMotDePasseHash(passwordEncoder.encode(newPassword));
             user.setMustChangePassword(false);
             utilisateurRepository.save(user);
