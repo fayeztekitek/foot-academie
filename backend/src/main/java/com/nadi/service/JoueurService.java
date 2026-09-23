@@ -115,6 +115,8 @@ public class JoueurService {
 
         if (request.getPostePrincipal() != null && !request.getPostePrincipal().isBlank()) {
             joueur.setPostePrincipal(Joueur.PosteFootball.valueOf(request.getPostePrincipal()));
+        } else {
+            joueur.setPostePrincipal(null);
         }
         if (request.getPostesSecondaires() != null) {
             joueur.setPostesSecondaires(request.getPostesSecondaires());
@@ -141,12 +143,16 @@ public class JoueurService {
             Categorie categorie = categorieRepository.findById(request.getCategorieId())
                     .orElseThrow(() -> new RuntimeException("Catégorie non trouvée: " + request.getCategorieId()));
             joueur.setCategorie(categorie);
+        } else {
+            joueur.setCategorie(null);
         }
 
         if (request.getParentId() != null) {
             Parent parent = parentRepository.findById(request.getParentId())
                     .orElseThrow(() -> new RuntimeException("Parent non trouvé: " + request.getParentId()));
             joueur.setParent(parent);
+        } else {
+            joueur.setParent(null);
         }
 
         return toResponse(joueurRepository.save(joueur));
@@ -190,9 +196,7 @@ public class JoueurService {
             if (entree.isAfter(finSaison)) {
                 entree = debutSaison;
             }
-            long totalMois = YearMonth.from(finSaison).lengthOfMonth() == YearMonth.from(entree).lengthOfMonth()
-                    ? java.time.temporal.ChronoUnit.MONTHS.between(entree, finSaison) + 1
-                    : java.time.temporal.ChronoUnit.MONTHS.between(entree, finSaison) + 1;
+            long totalMois = java.time.temporal.ChronoUnit.MONTHS.between(entree, finSaison) + 1;
             moisAVerser = (int) totalMois;
 
             List<Paiement> paiements = paiementRepository.findByJoueurId(j.getId());
@@ -214,7 +218,7 @@ public class JoueurService {
                 .parentId(j.getParent() != null ? j.getParent().getId() : null)
                 .parentNom(j.getParent() != null ? j.getParent().getNom() : null)
                 .parentPrenom(j.getParent() != null ? j.getParent().getPrenom() : null)
-                .statutPaiement(j.getStatutPaiement().name())
+                .statutPaiement(j.getStatutPaiement() != null ? j.getStatutPaiement().name() : Joueur.StatutPaiement.A_JOUR.name())
                 .frequence(j.getFrequence() != null ? j.getFrequence().name() : null)
                 .photoUrl(j.getPhotoUrl())
                 .postePrincipal(j.getPostePrincipal() != null ? j.getPostePrincipal().name() : null)
