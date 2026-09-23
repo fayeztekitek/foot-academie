@@ -7,6 +7,7 @@ import com.nadi.repository.AcademieRepository;
 import com.nadi.repository.UtilisateurRepository;
 import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -49,13 +51,21 @@ public class PublicAuthController {
         Long previousTenantId = TenantContext.getTenantId();
         try {
             TenantContext.clear();
+            log.info("Reset password: looking up user with email='{}'", email);
             Utilisateur user = utilisateurRepository.findByEmail(email).orElse(null);
             if (user == null) {
+                log.warn("Reset password: user not found with email='{}'", email);
                 return ResponseEntity.status(404).body(Map.of("message", "Utilisateur non trouvé avec cet email: " + email));
             }
-            user.setMotDePasseHash(passwordEncoder.encode(newPassword));
+            log.info("Reset password: found user id={}, tenantId={}, email={}", user.getId(), user.getTenantId(), user.getEmail());
+            String hash = passwordEncoder.encode(newPassword);
+            user.setMotDePasseHash(hash);
             user.setMustChangePassword(false);
             utilisateurRepository.save(user);
+            log.info("Reset password: saved user id={}", user.getId());
+        } catch (Exception e) {
+            log.error("Reset password failed for email='{}'", email, e);
+            throw new RuntimeException("Erreur reset password: " + e.getMessage());
         } finally {
             if (previousTenantId != null) {
                 TenantContext.setTenantId(previousTenantId);
