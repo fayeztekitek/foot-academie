@@ -4,7 +4,7 @@ import api from '../api/client';
 import { Plus, Building2, Users, GraduationCap, Calendar, Edit, Trash2, Power, Search, X, AlertTriangle, CreditCard } from 'lucide-react';
 
 export default function Academies() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [academies, setAcademies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -132,7 +132,7 @@ export default function Academies() {
           <h1 className="text-2xl font-bold text-gray-900">Académies</h1>
           <p className="text-gray-500 mt-1">Gestion des académies multi-tenants</p>
         </div>
-        {isAdmin && (
+        {isSuperAdmin && (
           <button
             onClick={() => handleOpenModal()}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -231,7 +231,7 @@ export default function Academies() {
               <span className={`px-2 py-1 text-xs rounded-full ${academy.active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                 {academy.active ? 'Actif' : 'Inactif'}
               </span>
-              {isAdmin && (
+              {isSuperAdmin && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleToggle(academy.id)}
