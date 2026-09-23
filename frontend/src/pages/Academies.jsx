@@ -13,7 +13,8 @@ export default function Academies() {
   const [showModal, setShowModal] = useState(false);
   const [editingAcademy, setEditingAcademy] = useState(null);
   const [formData, setFormData] = useState({
-    slug: '', nom: '', email: '', telephone: '', ville: '', adresse: '', plan: 'FREE'
+    slug: '', nom: '', email: '', telephone: '', ville: '', adresse: '', plan: 'FREE',
+    adminEmail: '', adminMotDePasse: ''
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -55,11 +56,13 @@ export default function Academies() {
         telephone: academy.telephone || '',
         ville: academy.ville || '',
         adresse: academy.adresse || '',
-        plan: academy.plan || 'FREE'
+        plan: academy.plan || 'FREE',
+        adminEmail: '',
+        adminMotDePasse: ''
       });
     } else {
       setEditingAcademy(null);
-      setFormData({ slug: '', nom: '', email: '', telephone: '', ville: '', adresse: '', plan: 'FREE' });
+      setFormData({ slug: '', nom: '', email: '', telephone: '', ville: '', adresse: '', plan: 'FREE', adminEmail: '', adminMotDePasse: '' });
     }
     setShowModal(true);
   };
@@ -370,6 +373,44 @@ export default function Academies() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+
+                {!editingAcademy && (
+                  <>
+                    <div className="border-t pt-4" style={{ borderColor: 'var(--line)' }}>
+                      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--pitch)' }}>
+                        Compte administrateur
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Email admin *</label>
+                          <input
+                            type="email"
+                            value={formData.adminEmail}
+                            onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                            required
+                            placeholder="admin@exemple.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe admin *</label>
+                          <input
+                            type="password"
+                            value={formData.adminMotDePasse}
+                            onChange={(e) => setFormData({...formData, adminMotDePasse: e.target.value})}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                            required
+                            minLength={6}
+                            placeholder="Min. 6 caractères"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs mt-2" style={{ color: 'var(--ink-muted)' }}>
+                        Ces identifiants seront utilisés pour se connecter à cette académie.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex justify-end gap-2.5 px-6 py-3.5 border-t" style={{ borderColor: 'var(--line)' }}>
                 <button type="button" onClick={() => setShowModal(false)} className="btn-ghost text-sm">

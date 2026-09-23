@@ -4,11 +4,16 @@ import com.nadi.dto.AcademieRequest;
 import com.nadi.dto.AcademieResponse;
 import com.nadi.model.Academie;
 import com.nadi.model.Abonnement;
+import com.nadi.model.Categorie;
+import com.nadi.model.Role;
+import com.nadi.model.Utilisateur;
 import com.nadi.repository.AcademieRepository;
 import com.nadi.repository.AbonnementRepository;
+import com.nadi.repository.CategorieRepository;
 import com.nadi.repository.JoueurRepository;
 import com.nadi.repository.ParentRepository;
 import com.nadi.repository.EntraineurRepository;
+import com.nadi.repository.UtilisateurRepository;
 import com.nadi.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -16,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +37,9 @@ public class AcademieService {
     private final JoueurRepository joueurRepository;
     private final ParentRepository parentRepository;
     private final EntraineurRepository entraineurRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final CategorieRepository categorieRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -67,7 +76,27 @@ public class AcademieService {
                 .plan(request.getPlan() != null ? request.getPlan() : "FREE")
                 .build();
 
-        return toResponse(academieRepository.save(academie));
+        academie = academieRepository.save(academie);
+
+        // Create admin user if credentials provided
+        if (request.getAdminEmail() != null && !request.getAdminEmail().isBlank()
+                && request.getAdminMotDePasse() != null && !request.getAdminMotDePasse().isBlank()) {
+            TenantContext.setTenantId(academie.getId());
+
+            Utilisateur admin = Utilisateur.builder()
+                    .email(request.getAdminEmail())
+                    .motDePasseHash(passwordEncoder.encode(request.getAdminMotDePasse()))
+                    .role(Role.ADMIN)
+                    .actif(true)
+                    .tenantId(academie.getId())
+                    .build();
+            utilisateurRepository.save(admin);
+
+            createDefaultCategories(academie.getId());
+            log.info("Created admin user {} for academy {}", request.getAdminEmail(), academie.getSlug());
+        }
+
+        return toResponse(academie);
     }
 
     @Transactional
@@ -204,5 +233,13 @@ public class AcademieService {
                 .createdAt(academie.getCreatedAt())
                 .updatedAt(academie.getUpdatedAt())
                 .build();
+    }
+
+    private void createDefaultCategories(Long tenantId) {
+        categorieRepository.save(Categorie.builder().nom("U9").description("Formation").ageMin(6).ageMax(9).tenantId(tenantId).build());
+        categorieRepository.save(Categorie.builder().nom("U13").description("Perfectionnement").ageMin(10).ageMax(13).tenantId(tenantId).build());
+        categorieRepository.save(Categorie.builder().nom("U17").description("Pre-nationale").ageMin(14).ageMax(17).tenantId(tenantId).build());
+        categorieRepository.save(Categorie.builder().nom("Elite").description("Selection").ageMin(15).ageMax(19).tenantId(tenantId).build());
+        categorieRepository.save(Categorie.builder().nom("Generaux").description("Categorie generale").ageMin(6).ageMax(19).tenantId(tenantId).build());
     }
 }

@@ -37,4 +37,8 @@ public class AcademieRequest {
     private LocalDate dateExpiration;
 
     private String plan;
+
+    private String adminEmail;
+
+    private String adminMotDePasse;
 }
