@@ -21,4 +21,9 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
     @Transactional
     @Query(value = "UPDATE utilisateur SET mot_de_passe_hash = :hash, must_change_password = false WHERE email = :email", nativeQuery = true)
     int updatePasswordByEmail(@Param("email") String email, @Param("hash") String hash);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE utilisateur SET mot_de_passe_hash = :hash, must_change_password = false WHERE email = :email AND tenant_id = :tenantId", nativeQuery = true)
+    int updatePasswordByEmailAndTenantId(@Param("email") String email, @Param("hash") String hash, @Param("tenantId") Long tenantId);
 }

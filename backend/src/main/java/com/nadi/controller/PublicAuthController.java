@@ -40,15 +40,25 @@ public class PublicAuthController {
 
     @PostMapping("/admin/reset-password")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<Map<String, String>> adminResetPassword(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String newPassword = body.get("newPassword");
+    public ResponseEntity<Map<String, String>> adminResetPassword(@RequestBody Map<String, Object> body) {
+        String email = (String) body.get("email");
+        String newPassword = (String) body.get("newPassword");
+        Object tenantIdObj = body.get("tenantId");
         if (email == null || newPassword == null || newPassword.length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email et mot de passe (min 6 car.) requis"));
         }
         String hash = passwordEncoder.encode(newPassword);
-        log.info("Admin reset password: updating password for email='{}'", email);
-        utilisateurRepository.updatePasswordByEmail(email, hash);
+        if (tenantIdObj != null) {
+            Long tenantId = Long.parseLong(tenantIdObj.toString());
+            log.info("Admin reset password: updating password for email='{}' in tenantId={}", email, tenantId);
+            int updated = utilisateurRepository.updatePasswordByEmailAndTenantId(email, hash, tenantId);
+            if (updated == 0) {
+                return ResponseEntity.status(404).body(Map.of("message", "Utilisateur non trouvé avec cet email dans ce tenant"));
+            }
+        } else {
+            log.info("Admin reset password: updating password for email='{}' in ALL tenants", email);
+            utilisateurRepository.updatePasswordByEmail(email, hash);
+        }
         log.info("Admin reset password: done for email='{}'", email);
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé pour " + email));
     }
