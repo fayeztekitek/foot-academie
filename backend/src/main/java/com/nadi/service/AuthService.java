@@ -25,6 +25,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public AuthResponse login(LoginRequest request) {
+        TenantContext.setTenantId(request.getTenantId());
+
         Utilisateur user = utilisateurRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Identifiants incorrects"));
 
@@ -35,8 +37,6 @@ public class AuthService {
         if (!user.getTenantId().equals(request.getTenantId())) {
             throw new BadCredentialsException("Identifiants incorrects");
         }
-
-        TenantContext.setTenantId(user.getTenantId());
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse()));
