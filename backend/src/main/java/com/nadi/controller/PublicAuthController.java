@@ -2,10 +2,8 @@ package com.nadi.controller;
 
 import com.nadi.dto.TenantPublicResponse;
 import com.nadi.model.Academie;
-import com.nadi.model.Utilisateur;
 import com.nadi.repository.AcademieRepository;
 import com.nadi.repository.UtilisateurRepository;
-import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -48,29 +46,10 @@ public class PublicAuthController {
         if (email == null || newPassword == null || newPassword.length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email et mot de passe (min 6 car.) requis"));
         }
-        Long previousTenantId = TenantContext.getTenantId();
-        try {
-            TenantContext.clear();
-            log.info("Reset password: looking up user with email='{}'", email);
-            Utilisateur user = utilisateurRepository.findByEmail(email).orElse(null);
-            if (user == null) {
-                log.warn("Reset password: user not found with email='{}'", email);
-                return ResponseEntity.status(404).body(Map.of("message", "Utilisateur non trouvé avec cet email: " + email));
-            }
-            log.info("Reset password: found user id={}, tenantId={}, email={}", user.getId(), user.getTenantId(), user.getEmail());
-            String hash = passwordEncoder.encode(newPassword);
-            user.setMotDePasseHash(hash);
-            user.setMustChangePassword(false);
-            utilisateurRepository.save(user);
-            log.info("Reset password: saved user id={}", user.getId());
-        } catch (Exception e) {
-            log.error("Reset password failed for email='{}'", email, e);
-            throw new RuntimeException("Erreur reset password: " + e.getMessage());
-        } finally {
-            if (previousTenantId != null) {
-                TenantContext.setTenantId(previousTenantId);
-            }
-        }
+        String hash = passwordEncoder.encode(newPassword);
+        log.info("Admin reset password: updating password for email='{}'", email);
+        utilisateurRepository.updatePasswordByEmail(email, hash);
+        log.info("Admin reset password: done for email='{}'", email);
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé pour " + email));
     }
 }
