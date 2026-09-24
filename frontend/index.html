@@ -15,5 +15,29 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Boot diagnostic: if React fails to mount (e.g. broken cached assets
+      // in the native WebView), show the error instead of a blank screen.
+      (function () {
+        var started = Date.now();
+        function fail(msg) {
+          var root = document.getElementById('root');
+          if (root && root.children.length === 0) {
+            root.innerHTML =
+              '<div style="font-family:sans-serif;padding:24px;color:#7a1f1f">' +
+              '<h3>Erreur de démarrage</h3><p>' + msg + '</p>' +
+              '<p style="font-size:12px">Désinstallez puis réinstallez l\'application, puis réessayez.</p></div>';
+          }
+        }
+        window.addEventListener('error', function (e) {
+          console.error('[boot-error]', e.message, e.filename);
+          if (Date.now() - started < 15000) fail('Script: ' + (e.message || 'erreur inconnue'));
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          console.error('[boot-rejection]', e.reason);
+        });
+        setTimeout(function () { fail('L\'application n\'a pas démarré.'); }, 15000);
+      })();
+    </script>
   </body>
 </html>

@@ -1,13 +1,3 @@
-FROM node:20-alpine AS web-builder
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
-COPY . .
-ENV VITE_API_URL=https://nadi-foot-academie.onrender.com/api
-ENV CAPACITOR_BUILD=true
-RUN npm run build
-
-
 FROM eclipse-temurin:17-jdk AS android-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -35,9 +25,12 @@ RUN yes | sdkmanager --sdk_root=${ANDROID_HOME} --licenses > /dev/null 2>&1 && \
       "build-tools;34.0.0"
 
 WORKDIR /app
-COPY --from=web-builder /app/dist ./dist
-COPY --from=web-builder /app/package.json ./
-COPY --from=web-builder /app/package-lock.json ./
+# NOTE: dist must be built on the host with the native flag first:
+#   $env:CAPACITOR_BUILD='true'; npm run build
+# (vite.config.js reads .env.production via loadEnv and skips the PWA
+# service worker when CAPACITOR_BUILD=true)
+COPY dist ./dist
+COPY package.json package-lock.json* ./
 COPY capacitor.config.json ./
 COPY src ./src
 
