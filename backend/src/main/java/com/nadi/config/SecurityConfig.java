@@ -56,7 +56,10 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Cost 12 per the security baseline (default 10 is below par).
+        // Existing hashes remain valid — BCrypt stores the cost in the hash
+        // and matches() verifies against it regardless of this setting.
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
