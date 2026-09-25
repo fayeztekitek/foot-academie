@@ -32,11 +32,18 @@ public class ConsentementRGPDController {
     }
 
     @PostMapping("/consent-register")
-    public ResponseEntity<ConsentementRGPD> record(@RequestBody Map<String, Object> body) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'COACH', 'PARENT')")
+    public ResponseEntity<ConsentementRGPD> record(
+            @RequestBody Map<String, Object> body,
+            jakarta.servlet.http.HttpServletRequest request) {
+        if (body.get("parentId") == null || body.get("type") == null || body.get("accord") == null) {
+            return ResponseEntity.badRequest().build();
+        }
         Long parentId = Long.valueOf(body.get("parentId").toString());
         String type = (String) body.get("type");
         boolean accord = (Boolean) body.get("accord");
-        String ip = (String) body.getOrDefault("ipAddress", "unknown");
+        // Legal evidence: the IP must come from the socket, never from the client body.
+        String ip = request.getRemoteAddr();
         String details = (String) body.getOrDefault("details", null);
         return ResponseEntity.ok(consentementService.record(parentId, type, accord, ip, details));
     }

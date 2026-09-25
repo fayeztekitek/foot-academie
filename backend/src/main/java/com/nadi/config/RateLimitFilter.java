@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.nadi.tenant.TenantContext;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -14,9 +16,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
+// Explicit order: this filter must run AFTER the Spring Security chain (where
+// JwtAuthenticationFilter sets the TenantContext). Relying on default ordering
+// made the tenant gate below order-fragile (valid JWT requests could 403).
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 30;
     private final Map<String, RequestCounter> counterMap = new ConcurrentHashMap<>();
 
     @Override
@@ -37,11 +42,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String key = getClientIp(request) + ":" + path;
-
-        if (path.contains("/auth/login")) {
+        // Per-endpoint throttles (keyed by client IP + path).
+        int limit = limitFor(path);
+        if (limit > 0) {
+            String key = getClientIp(request) + ":" + path;
             RequestCounter counter = counterMap.computeIfAbsent(key, k -> new RequestCounter());
-            if (!counter.allowRequest(5)) {
+            if (!counter.allowRequest(limit)) {
                 response.setStatus(429);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"message\":\"Trop de tentatives. Réessayez dans 1 minute.\"}");
@@ -51,6 +57,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         counterMap.entrySet().removeIf(e -> e.getValue().isExpired());
         filterChain.doFilter(request, response);
+    }
+
+    private int limitFor(String path) {
+        if (path.contains("/auth/login")) return 5;
+        if (path.contains("/auth/refresh")) return 10;
+        if (path.contains("/invitations/accept")) return 10;
+        if (path.contains("/ai/chat")) return 30;
+        return 0;
     }
 
     private String getClientIp(HttpServletRequest request) {

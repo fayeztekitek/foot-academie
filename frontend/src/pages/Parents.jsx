@@ -273,9 +273,9 @@ export default function Parents() {
                   href={`https://wa.me/${createdCredentials.telephone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                     `Bonjour ${createdCredentials.prenom} ${createdCredentials.nom},\n\n` +
                     `Votre compte Nadi Académie a été créé.\n\n` +
-                    `Email : ${createdCredentials.email}\n` +
-                    `Mot de passe : ${createdCredentials.motDePasse}\n\n` +
-                    `Pour des raisons de sécurité, vous devrez changer votre mot de passe lors de votre première connexion.\n\n` +
+                    `Email : ${createdCredentials.email}\n\n` +
+                    `Pour des raisons de sécurité, le mot de passe temporaire vous sera communiqué séparément ` +
+                    `et vous devrez le changer lors de votre première connexion.\n\n` +
                     `Connectez-vous sur : https://frontend-theta-navy-p2kodej171.vercel.app/login`
                   )}`}
                   target="_blank"

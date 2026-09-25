@@ -47,6 +47,18 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Defense in depth: the backend enforces roles on every endpoint, but the UI
+// must not mount admin screens (and fire their API calls) for unauthorized
+// roles. Previously any authenticated user could open these by URL.
+function RoleRoute({ roles, children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <ForcePasswordChange />;
+  if (!roles.includes(user?.role)) return <Navigate to="/" replace />;
+  return children;
+}
+
 function SuperAdminDashboardWrapper() {
   const { user } = useAuth();
   if (user?.role === 'SUPER_ADMIN') return <SuperAdminDashboard />;
@@ -63,7 +75,7 @@ function AppRoutes() {
       <Route path="/onboarding" element={user?.role === 'SUPER_ADMIN' ? <Onboarding /> : <Navigate to="/login" replace />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<SuperAdminDashboardWrapper />} />
-        <Route path="super-admin" element={<SuperAdminDashboard />} />
+        <Route path="super-admin" element={<RoleRoute roles={['SUPER_ADMIN']}><SuperAdminDashboard /></RoleRoute>} />
         <Route path="players" element={<Players />} />
         <Route path="players/:id" element={<PlayerDetail />} />
         <Route path="parents" element={<Parents />} />
@@ -74,11 +86,11 @@ function AppRoutes() {
         <Route path="categories" element={<Categories />} />
         <Route path="presence" element={<Presence />} />
         <Route path="events" element={<Events />} />
-        <Route path="academies" element={<Academies />} />
-        <Route path="invitations" element={<Invitations />} />
-        <Route path="billing" element={<Billing />} />
-        <Route path="rgpd" element={<Rgpd />} />
-        <Route path="import" element={<Import />} />
+        <Route path="academies" element={<RoleRoute roles={['SUPER_ADMIN']}><Academies /></RoleRoute>} />
+        <Route path="invitations" element={<RoleRoute roles={['ADMIN', 'SUPER_ADMIN']}><Invitations /></RoleRoute>} />
+        <Route path="billing" element={<RoleRoute roles={['ADMIN', 'SUPER_ADMIN']}><Billing /></RoleRoute>} />
+        <Route path="rgpd" element={<RoleRoute roles={['ADMIN', 'SUPER_ADMIN']}><Rgpd /></RoleRoute>} />
+        <Route path="import" element={<RoleRoute roles={['ADMIN', 'SUPER_ADMIN']}><Import /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

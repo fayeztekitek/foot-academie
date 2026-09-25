@@ -44,6 +44,10 @@ public class Utilisateur {
     @Column(nullable = false)
     private Boolean mustChangePassword = false;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Long tokenVersion = 0L;
+
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 

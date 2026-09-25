@@ -158,6 +158,20 @@ public class EvenementService {
         Convocation convocation = convocationRepository.findById(convocationId)
                 .orElseThrow(() -> new RuntimeException("Convocation non trouvée: " + convocationId));
 
+        // A parent may only respond to their own family's convocations.
+        Long userId = securityUtils.getCurrentUserId();
+        boolean ownFamily = (convocation.getParent() != null
+                && convocation.getParent().getUtilisateur() != null
+                && convocation.getParent().getUtilisateur().getId().equals(userId))
+                || (convocation.getJoueur() != null
+                && convocation.getJoueur().getParent() != null
+                && convocation.getJoueur().getParent().getUtilisateur() != null
+                && convocation.getJoueur().getParent().getUtilisateur().getId().equals(userId));
+        if (!ownFamily) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Accès interdit à cette convocation");
+        }
+
         convocation.setStatut(accept ? Convocation.StatutConvocation.CONFIRME : Convocation.StatutConvocation.REFUSE);
         convocation.setDateReponse(LocalDateTime.now());
 

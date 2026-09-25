@@ -15,6 +15,12 @@ export function PhotoUpload({ value, onChange, prenom, nom, size = 80 }) {
       alert('La photo ne doit pas dépasser 2 Mo');
       return;
     }
+    // accept="image/*" is cosmetic and bypassable: enforce raster MIME types.
+    // SVG is excluded — it can carry scripts (stored-XSS vector).
+    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)) {
+      alert('Format accepté : PNG, JPG, GIF ou WEBP');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => onChange(reader.result);
     reader.readAsDataURL(file);

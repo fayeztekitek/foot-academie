@@ -10,6 +10,14 @@ export default function Import() {
 
   const handleImport = async (type, file) => {
     if (!file) return;
+    if (!/\.csv$/i.test(file.name) && file.type !== 'text/csv') {
+      setError('Fichier CSV uniquement');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Le fichier ne doit pas dépasser 5 Mo');
+      return;
+    }
     setImporting(true);
     setResult(null);
     setError(null);

@@ -4,6 +4,7 @@ import com.nadi.dto.NoteJoueurRequest;
 import com.nadi.dto.NoteJoueurResponse;
 import com.nadi.model.*;
 import com.nadi.repository.*;
+import com.nadi.security.FamilyAccessGuard;
 import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,9 +27,13 @@ public class NoteJoueurService {
     private final JoueurRepository joueurRepository;
     private final CreneauRepository creneauRepository;
     private final EntraineurRepository entraineurRepository;
+    private final FamilyAccessGuard familyAccessGuard;
 
     @Transactional(readOnly = true)
     public Page<NoteJoueurResponse> getByJoueur(Long joueurId, Pageable pageable) {
+        Joueur joueur = joueurRepository.findById(joueurId)
+                .orElseThrow(() -> new RuntimeException("Joueur non trouvé: " + joueurId));
+        familyAccessGuard.requireAccessToJoueur(joueur);
         return noteJoueurRepository.findByJoueurIdOrderByDateDesc(joueurId, pageable)
                 .map(this::toResponse);
     }
@@ -62,6 +67,9 @@ public class NoteJoueurService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getStats(Long joueurId) {
+        Joueur joueur = joueurRepository.findById(joueurId)
+                .orElseThrow(() -> new RuntimeException("Joueur non trouvé: " + joueurId));
+        familyAccessGuard.requireAccessToJoueur(joueur);
         Map<String, Object> stats = new HashMap<>();
         stats.put("moyenneGlobale", noteJoueurRepository.findAverageNoteByJoueur(joueurId));
         stats.put("moyennePhysique", noteJoueurRepository.findAveragePhysiqueByJoueur(joueurId));

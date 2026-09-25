@@ -6,7 +6,7 @@ import { authApi } from '../api/auth';
 
 export default function Login() {
   const { login } = useAuth();
-  const { isDemo, enableDemo, disableDemo, backendUrl, updateBackendUrl } = useDemo();
+  const { isDemo, enableDemo, disableDemo, backendUrl, updateBackendUrl, updateApiBaseUrl } = useDemo();
   const [email, setEmail] = useState(isDemo ? 'admin@nadi.tn' : '');
   const [motDePasse, setMotDePasse] = useState(isDemo ? 'admin123' : '');
   const [error, setError] = useState('');
@@ -73,9 +73,39 @@ export default function Login() {
     }
   };
 
+  const [urlWarning, setUrlWarning] = useState('');
+
   const handleSaveSettings = () => {
-    updateBackendUrl(tempUrl);
+    const raw = (tempUrl || '').trim();
+    if (!raw) {
+      // Empty = back to the baked-in default backend.
+      updateBackendUrl('');
+      updateApiBaseUrl('');
+      setUrlWarning('');
+      setShowSettings(false);
+      window.location.reload();
+      return;
+    }
+    let parsed;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      setUrlWarning('URL invalide (ex: https://mon-serveur:8081/api)');
+      return;
+    }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      setUrlWarning('Seuls les protocoles http et https sont acceptés');
+      return;
+    }
+    const normalized = parsed.toString().replace(/\/$/, '');
+    updateBackendUrl(normalized.replace(/\/api$/, ''));
+    updateApiBaseUrl(normalized);
+    setUrlWarning(parsed.protocol === 'http:'
+      ? 'Attention : connexion non chiffrée — identifiants visibles sur le réseau.'
+      : '');
     setShowSettings(false);
+    // The API client reads the base URL at import: reload to apply it.
+    window.location.reload();
   };
 
   const demoRoles = [
@@ -152,8 +182,11 @@ export default function Login() {
                 placeholder="http://192.168.1.100:8081/api"
               />
               <p className="text-[11px] mt-1" style={{ color: 'var(--ink-soft)' }}>
-                Laissez vide pour la démo. Ex: http://10.0.2.2:8081/api (émulateur)
+                Laissez vide pour le serveur par défaut. Ex: http://10.0.2.2:8081/api (émulateur)
               </p>
+              {urlWarning && (
+                <p className="text-[11px] mt-1 font-medium" style={{ color: '#B91C1C' }}>{urlWarning}</p>
+              )}
             </div>
             <button onClick={handleSaveSettings} className="btn-primary w-full py-2 text-sm">
               Enregistrer

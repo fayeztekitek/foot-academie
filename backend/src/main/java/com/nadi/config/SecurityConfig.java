@@ -71,11 +71,14 @@ public class SecurityConfig {
         if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
             configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         } else {
+            // Canonical origins only. Preview deployments must NOT be trusted
+            // with credentials: a compromised preview origin could then make
+            // credentialed cross-origin calls. Add new frontends via the
+            // CORS_ALLOWED_ORIGINS environment variable instead.
             configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "https://frontend-theta-navy-p2kodej171.vercel.app",
-                "https://frontend-f1-tek.vercel.app",
                 "capacitor://localhost",
                 "https://localhost"
             ));

@@ -81,9 +81,12 @@ public class EntraineurService {
 
         String motDePasse = null;
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            motDePasse = (request.getMotDePasse() != null && !request.getMotDePasse().isBlank())
-                    ? request.getMotDePasse()
-                    : "Nadi" + UUID.randomUUID().toString().substring(0, 4);
+            if (request.getMotDePasse() != null && !request.getMotDePasse().isBlank()) {
+                com.nadi.security.PasswordPolicy.validateOrThrow(request.getMotDePasse());
+                motDePasse = request.getMotDePasse();
+            } else {
+                motDePasse = com.nadi.security.PasswordPolicy.generateTemporaryPassword();
+            }
             Utilisateur utilisateur = Utilisateur.builder()
                     .email(request.getEmail())
                     .motDePasseHash(passwordEncoder.encode(motDePasse))
@@ -145,6 +148,9 @@ public class EntraineurService {
         } else {
             entraineur.getUtilisateur().setMotDePasseHash(passwordEncoder.encode(nouveauMotDePasse));
             entraineur.getUtilisateur().setMustChangePassword(true);
+            entraineur.getUtilisateur().setTokenVersion(
+                    entraineur.getUtilisateur().getTokenVersion() != null
+                            ? entraineur.getUtilisateur().getTokenVersion() + 1 : 1L);
             utilisateurRepository.save(entraineur.getUtilisateur());
         }
     }

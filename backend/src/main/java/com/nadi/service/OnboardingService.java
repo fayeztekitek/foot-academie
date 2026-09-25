@@ -42,6 +42,8 @@ public class OnboardingService {
                 .build();
         academie = academieRepository.save(academie);
 
+        com.nadi.security.PasswordPolicy.validateOrThrow(request.getAdminMotDePasse());
+
         TenantContext.setTenantId(academie.getId());
 
         Utilisateur admin = Utilisateur.builder()

@@ -102,11 +102,10 @@ public class ParentController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String nouveauMotDePasse = body.get("motDePasse");
-        if (nouveauMotDePasse == null || nouveauMotDePasse.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le mot de passe est obligatoire"));
-        }
-        if (nouveauMotDePasse.length() < 6) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le mot de passe doit contenir au moins 6 caractères"));
+        try {
+            com.nadi.security.PasswordPolicy.validateOrThrow(nouveauMotDePasse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
         parentService.resetPassword(id, nouveauMotDePasse);
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));

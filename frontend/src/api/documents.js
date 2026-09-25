@@ -14,9 +14,11 @@ export const documentsApi = {
   upload: (joueurId, type, file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post(`/documents/upload?joueurId=${joueurId}&type=${type}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return api.post(
+      `/documents/upload?joueurId=${encodeURIComponent(joueurId)}&type=${encodeURIComponent(type)}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
   },
 
   updateStatut: (id, statut) => api.put(`/documents/${id}/statut`, { statut }),

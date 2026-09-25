@@ -79,7 +79,16 @@ public class NotificationController {
 
     @DeleteMapping("/unregister-device")
     public ResponseEntity<Map<String, String>> unregisterDevice(@RequestParam String token) {
-        deviceTokenRepository.findByToken(token).ifPresent(deviceTokenRepository::delete);
+        Utilisateur user = getCurrentUser();
+        // Only the token owner may unregister it: otherwise any authenticated
+        // user who learns another user's FCM token could silently cut off
+        // their push notifications.
+        deviceTokenRepository.findByToken(token).ifPresent(device -> {
+            if (device.getUtilisateur() != null
+                    && device.getUtilisateur().getId().equals(user.getId())) {
+                deviceTokenRepository.delete(device);
+            }
+        });
         return ResponseEntity.ok(Map.of("message", "Appareil désenregistré"));
     }
 

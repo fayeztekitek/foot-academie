@@ -52,29 +52,11 @@ export default defineConfig(({ mode }) => {
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https?:\/\/.*\/api\/(slots|categories|players|coaches|dashboard|parents\/me).*/,
-            handler: 'NetworkFirst',
-            method: 'GET',
-            options: {
-              cacheName: 'api-read-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
-              networkTimeoutSeconds: 5
-            }
-          },
-          {
-            urlPattern: /^https?:\/\/.*\/api\/notifications.*/,
-            handler: 'NetworkFirst',
-            method: 'GET',
-            options: {
-              cacheName: 'notifications-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 1800 },
-              networkTimeoutSeconds: 3
-            }
-          }
-        ]
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        // No runtimeCaching for API responses: tenant-scoped PII (players,
+        // parents/me, dashboard, notifications) was cached keyed by URL only,
+        // so a slow network could serve user A's records to user B on a
+        // shared profile, and any XSS on the origin could read the caches.
       }
     })])
   ],

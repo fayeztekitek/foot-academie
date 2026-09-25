@@ -14,6 +14,7 @@ import com.nadi.repository.JoueurRepository;
 import com.nadi.repository.ParentRepository;
 import com.nadi.repository.EntraineurRepository;
 import com.nadi.repository.UtilisateurRepository;
+import com.nadi.security.SecurityUtils;
 import com.nadi.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ public class AcademieService {
     private final UtilisateurRepository utilisateurRepository;
     private final CategorieRepository categorieRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityUtils securityUtils;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -49,8 +52,23 @@ public class AcademieService {
         return academieRepository.findAll(pageable).map(this::toResponse);
     }
 
+    /**
+     * Cross-tenant IDOR guard: only SUPER_ADMIN may touch any academy.
+     * Other roles are restricted to their own tenant academy.
+     */
+    private void requireAcademyAccess(Long id) {
+        if (securityUtils.isSuperAdmin()) {
+            return;
+        }
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null || !tenantId.equals(id)) {
+            throw new AccessDeniedException("Accès interdit à cette académie");
+        }
+    }
+
     @Transactional(readOnly = true)
     public AcademieResponse getById(Long id) {
+        requireAcademyAccess(id);
         Academie academie = academieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Académie non trouvée avec l'id: " + id));
         return toResponse(academie);
@@ -81,6 +99,7 @@ public class AcademieService {
         // Create admin user if credentials provided
         if (request.getAdminEmail() != null && !request.getAdminEmail().isBlank()
                 && request.getAdminMotDePasse() != null && !request.getAdminMotDePasse().isBlank()) {
+            com.nadi.security.PasswordPolicy.validateOrThrow(request.getAdminMotDePasse());
             TenantContext.setTenantId(academie.getId());
 
             Utilisateur admin = Utilisateur.builder()
@@ -101,6 +120,7 @@ public class AcademieService {
 
     @Transactional
     public AcademieResponse update(Long id, AcademieRequest request) {
+        requireAcademyAccess(id);
         Academie academie = academieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Académie non trouvée avec l'id: " + id));
 
@@ -150,6 +170,7 @@ public class AcademieService {
 
     @Transactional
     public AcademieResponse toggleActive(Long id) {
+        requireAcademyAccess(id);
         Academie academie = academieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Académie non trouvée avec l'id: " + id));
 

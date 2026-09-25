@@ -72,11 +72,10 @@ public class EntraineurController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String nouveauMotDePasse = body.get("motDePasse");
-        if (nouveauMotDePasse == null || nouveauMotDePasse.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Le mot de passe est obligatoire"));
-        }
-        if (nouveauMotDePasse.length() < 8) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Le mot de passe doit contenir au moins 8 caractères"));
+        try {
+            com.nadi.security.PasswordPolicy.validateOrThrow(nouveauMotDePasse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
         entraineurService.resetPassword(id, nouveauMotDePasse);
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));

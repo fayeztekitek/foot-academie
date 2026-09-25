@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -27,6 +30,11 @@ public class AiService {
 
     private final Map<String, List<Map<String, Object>>> conversationHistory = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> rateLimiter = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "ai-rate-limiter");
+        t.setDaemon(true);
+        return t;
+    });
 
     public AiService(AiConfig config, PromptTemplates promptTemplates,
                      AiContextBuilder contextBuilder, ToolRegistry toolRegistry,
@@ -182,24 +190,25 @@ public class AiService {
 
     private String getUserRole(String userId) {
         try {
-            return contextBuilder.buildContext("chat").getOrDefault("userRole", "ADMIN").toString();
+            // Least-privilege fallback: if the security context is unavailable
+            // (e.g. background thread), never escalate to ADMIN — restrict to
+            // PARENT-level tools instead of failing open.
+            return contextBuilder.buildContext("chat").getOrDefault("userRole", "PARENT").toString();
         } catch (Exception e) {
-            return "ADMIN";
+            return "PARENT";
         }
     }
 
     private boolean isRateLimited(String userId) {
-        AtomicInteger count = rateLimiter.computeIfAbsent(userId, k -> new AtomicInteger(0));
+        // Never share buckets across users: failures resolving the user get a
+        // per-request unique key instead of one global "anonymous" bucket.
+        String bucket = (userId == null || userId.isBlank()) ? "anon-" + UUID.randomUUID() : userId;
+        AtomicInteger count = rateLimiter.computeIfAbsent(bucket, k -> new AtomicInteger(0));
         if (count.incrementAndGet() > config.getRateLimitPerMinute()) {
             return true;
         }
         if (count.get() == 1) {
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    rateLimiter.remove(userId);
-                }
-            }, 60000);
+            scheduler.schedule(() -> rateLimiter.remove(bucket), 60, TimeUnit.SECONDS);
         }
         return false;
     }

@@ -5,6 +5,7 @@ import com.nadi.dto.LoginRequest;
 import com.nadi.model.Utilisateur;
 import com.nadi.repository.UtilisateurRepository;
 import com.nadi.security.JwtTokenProvider;
+import com.nadi.security.PasswordPolicy;
 import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -41,8 +42,9 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse()));
 
-        String accessToken = tokenProvider.generateAccessToken(authentication, user.getTenantId());
-        String refreshToken = tokenProvider.generateRefreshToken(authentication, user.getTenantId());
+        long tokenVersion = currentTokenVersion(user);
+        String accessToken = tokenProvider.generateAccessToken(authentication, user.getTenantId(), tokenVersion);
+        String refreshToken = tokenProvider.generateRefreshToken(authentication, user.getTenantId(), tokenVersion);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -61,8 +63,14 @@ public class AuthService {
             throw new RuntimeException("Token de rafraîchissement invalide");
         }
 
+        // Token-type confusion guard: only refresh-typed tokens accepted here.
+        // Legacy tokens without a "typ" claim are still honored until expiry.
+        String presentedType = tokenProvider.getTokenType(refreshToken);
+        if (presentedType != null && !"refresh".equals(presentedType)) {
+            throw new RuntimeException("Token de rafraîchissement invalide");
+        }
+
         String email = tokenProvider.getEmailFromToken(refreshToken);
-        Long tenantId = tokenProvider.getTenantIdFromToken(refreshToken);
 
         Utilisateur user = utilisateurRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
@@ -71,10 +79,16 @@ public class AuthService {
             throw new RuntimeException("Compte désactivé");
         }
 
+        Long presentedTv = tokenProvider.getTokenVersion(refreshToken);
+        if (presentedTv != null && presentedTv != currentTokenVersion(user)) {
+            throw new RuntimeException("Token de rafraîchissement révoqué");
+        }
+
         // Rotate: generate new access AND refresh tokens
-        String newAccessToken = tokenProvider.generateAccessTokenFromEmail(email, user.getTenantId());
+        long tokenVersion = currentTokenVersion(user);
+        String newAccessToken = tokenProvider.generateAccessTokenFromEmail(email, user.getTenantId(), tokenVersion);
         String newRefreshToken = tokenProvider.generateRefreshToken(
-                new UsernamePasswordAuthenticationToken(email, null), user.getTenantId());
+                new UsernamePasswordAuthenticationToken(email, null), user.getTenantId(), tokenVersion);
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
@@ -92,8 +106,15 @@ public class AuthService {
         if (!passwordEncoder.matches(ancienMotDePasse, user.getMotDePasseHash())) {
             throw new RuntimeException("L'ancien mot de passe est incorrect");
         }
+        PasswordPolicy.validateOrThrow(nouveauMotDePasse);
         user.setMotDePasseHash(passwordEncoder.encode(nouveauMotDePasse));
         user.setMustChangePassword(false);
+        // Revoke all previously issued tokens for this account.
+        user.setTokenVersion(currentTokenVersion(user) + 1);
         utilisateurRepository.save(user);
+    }
+
+    private long currentTokenVersion(Utilisateur user) {
+        return user.getTokenVersion() != null ? user.getTokenVersion() : 0L;
     }
 }

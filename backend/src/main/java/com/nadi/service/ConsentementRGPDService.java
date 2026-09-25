@@ -4,6 +4,7 @@ import com.nadi.model.ConsentementRGPD;
 import com.nadi.model.Parent;
 import com.nadi.repository.ConsentementRGPDRepository;
 import com.nadi.repository.ParentRepository;
+import com.nadi.security.FamilyAccessGuard;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class ConsentementRGPDService {
 
     private final ConsentementRGPDRepository consentementRepository;
     private final ParentRepository parentRepository;
+    private final FamilyAccessGuard familyAccessGuard;
 
     @Transactional(readOnly = true)
     public List<ConsentementRGPD> getAll() {
@@ -27,11 +29,13 @@ public class ConsentementRGPDService {
 
     @Transactional(readOnly = true)
     public List<ConsentementRGPD> getByParent(Long parentId) {
+        familyAccessGuard.requireOwnParentId(parentId);
         return consentementRepository.findByParentId(parentId);
     }
 
     @Transactional
     public ConsentementRGPD record(Long parentId, String type, boolean accord, String ipAddress, String details) {
+        familyAccessGuard.requireOwnParentId(parentId);
         Parent parent = parentRepository.findById(parentId)
                 .orElseThrow(() -> new RuntimeException("Parent non trouvé: " + parentId));
 

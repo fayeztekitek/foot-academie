@@ -21,19 +21,19 @@ public class InvitationController {
     private final InvitationService invitationService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<InvitationResponse> create(@Valid @RequestBody InvitationRequest request) {
         return ResponseEntity.ok(invitationService.createInvitation(request));
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<List<InvitationResponse>> listAll() {
         return ResponseEntity.ok(invitationService.listAll());
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<List<InvitationResponse>> listPending() {
         return ResponseEntity.ok(invitationService.listPending());
     }
@@ -50,7 +50,7 @@ public class InvitationController {
     }
 
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, String>> cancel(@PathVariable Long id) {
         invitationService.cancelInvitation(id);
         return ResponseEntity.ok(Map.of("message", "Invitation annulée"));

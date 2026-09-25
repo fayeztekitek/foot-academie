@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,12 +37,11 @@ public class InvitationService {
             throw new RuntimeException("Aucun contexte tenant disponible");
         }
 
-        if (invitationRepository.existsByEmailAndStatut(request.getEmail(), Invitation.StatutInvitation.EN_ATTENTE)) {
-            throw new RuntimeException("Une invitation en attente existe déjà pour cet email");
-        }
-
-        if (utilisateurRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Cet email est déjà associé à un compte utilisateur");
+        // Deliberately identical messages: distinct responses would let callers
+        // enumerate which emails already have accounts or pending invitations.
+        if (invitationRepository.existsByEmailAndStatut(request.getEmail(), Invitation.StatutInvitation.EN_ATTENTE)
+                || utilisateurRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Impossible de créer une invitation pour cet email");
         }
 
         Role role;
@@ -48,6 +49,15 @@ public class InvitationService {
             role = Role.valueOf(request.getRole());
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Rôle invalide: " + request.getRole());
+        }
+
+        // Privilege-escalation guard: an inviter can only grant roles
+        // strictly below their own. Only SUPER_ADMIN may invite ADMIN
+        // or SUPER_ADMIN.
+        Role inviterRole = securityUtils.getCurrentUserOrThrow().getRole();
+        if (!isRoleGrantableBy(inviterRole, role)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Vous ne pouvez pas inviter avec le rôle: " + request.getRole());
         }
 
         Utilisateur currentUser = securityUtils.getCurrentUserOrThrow();
@@ -64,6 +74,16 @@ public class InvitationService {
 
         Invitation saved = invitationRepository.save(invitation);
         return toResponse(saved);
+    }
+
+    private static boolean isRoleGrantableBy(Role inviterRole, Role grantedRole) {
+        if (inviterRole == Role.SUPER_ADMIN) {
+            return true;
+        }
+        if (inviterRole == Role.ADMIN) {
+            return EnumSet.of(Role.COACH, Role.PARENT).contains(grantedRole);
+        }
+        return false;
     }
 
     @Transactional(readOnly = true)
@@ -114,6 +134,8 @@ public class InvitationService {
         if (invitation.getStatut() != Invitation.StatutInvitation.EN_ATTENTE) {
             throw new RuntimeException("Cette invitation n'est plus valide");
         }
+
+        com.nadi.security.PasswordPolicy.validateOrThrow(request.getMotDePasse());
 
         TenantContext.setTenantId(invitation.getTenantId());
 

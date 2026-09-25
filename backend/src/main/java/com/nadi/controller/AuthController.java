@@ -2,6 +2,7 @@ package com.nadi.controller;
 
 import com.nadi.dto.AuthResponse;
 import com.nadi.dto.LoginRequest;
+import com.nadi.security.PasswordPolicy;
 import com.nadi.security.SecurityUtils;
 import com.nadi.service.AuthService;
 import jakarta.validation.Valid;
@@ -39,12 +40,13 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> changePassword(@RequestBody Map<String, String> body) {
         String ancienMotDePasse = body.get("ancienMotDePasse");
         String nouveauMotDePasse = body.get("nouveauMotDePasse");
-        if (ancienMotDePasse == null || nouveauMotDePasse == null
-                || ancienMotDePasse.isBlank() || nouveauMotDePasse.isBlank()) {
+        if (ancienMotDePasse == null || ancienMotDePasse.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        if (nouveauMotDePasse.length() < 8) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le mot de passe doit contenir au moins 8 caractères"));
+        try {
+            PasswordPolicy.validateOrThrow(nouveauMotDePasse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
         authService.changePassword(securityUtils.getCurrentUserOrThrow(), ancienMotDePasse, nouveauMotDePasse);
         return ResponseEntity.ok(Map.of("message", "Mot de passe modifié avec succès"));

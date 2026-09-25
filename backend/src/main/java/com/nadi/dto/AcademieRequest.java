@@ -20,6 +20,9 @@ public class AcademieRequest {
     @NotBlank(message = "Le nom est obligatoire")
     private String nom;
 
+    @jakarta.validation.constraints.Pattern(
+            regexp = "^(https?://|data:image/(png|jpeg|gif|webp);base64,).{0,2000000}$",
+            message = "URL de logo invalide (http(s) ou image base64 uniquement)")
     private String logoUrl;
 
     private String adresse;

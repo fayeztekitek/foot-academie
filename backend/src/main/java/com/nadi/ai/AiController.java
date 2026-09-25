@@ -1,9 +1,12 @@
 package com.nadi.ai;
 
 import com.nadi.security.SecurityUtils;
+import com.nadi.tenant.TenantContext;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -41,8 +44,15 @@ public class AiController {
     public SseEmitter chatStream(@RequestBody ChatRequest request) {
         SseEmitter emitter = new SseEmitter(120000L);
         String userId = getCurrentUserId();
+        // ThreadLocals (tenant + security context) do not cross into the pool
+        // thread: capture on the request thread and restore inside, otherwise
+        // the AI runs unfiltered and falls back to ADMIN privileges.
+        Long tenantId = TenantContext.getTenantId();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         executor.execute(() -> {
+            TenantContext.setTenantId(tenantId);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
             try {
                 AiService.AiResponse response = aiService.chat(userId, request.message(), request.page());
                 emitter.send(SseEmitter.event()
@@ -54,6 +64,9 @@ public class AiController {
                 emitter.complete();
             } catch (Exception e) {
                 emitter.completeWithError(e);
+            } finally {
+                TenantContext.clear();
+                SecurityContextHolder.clearContext();
             }
         });
 

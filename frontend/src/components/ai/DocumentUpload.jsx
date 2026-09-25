@@ -4,19 +4,32 @@ import { Upload, FileText, Image, Table2, X } from 'lucide-react';
 export default function DocumentUpload({ onUpload, onClose }) {
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      onUpload(file);
+  const MAX_SIZE = 10 * 1024 * 1024;
+  const ALLOWED_TYPES = [
+    'application/pdf', 'text/csv', 'text/plain', 'text/markdown',
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+  ];
+
+  const acceptFile = (file) => {
+    if (!file) return;
+    if (file.size > MAX_SIZE) {
+      alert('Le fichier ne doit pas dépasser 10 Mo');
+      return;
     }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('Type de fichier non accepté (PDF, CSV, images, texte uniquement)');
+      return;
+    }
+    onUpload(file);
+  };
+
+  const handleFileChange = (e) => {
+    acceptFile(e.target.files[0]);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      onUpload(file);
-    }
+    acceptFile(e.dataTransfer.files[0]);
   };
 
   const handleDragOver = (e) => {

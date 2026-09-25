@@ -70,9 +70,12 @@ public class ParentService {
 
         String motDePasse = null;
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            motDePasse = (request.getMotDePasse() != null && !request.getMotDePasse().isBlank())
-                    ? request.getMotDePasse()
-                    : "Nadi" + UUID.randomUUID().toString().substring(0, 4);
+            if (request.getMotDePasse() != null && !request.getMotDePasse().isBlank()) {
+                com.nadi.security.PasswordPolicy.validateOrThrow(request.getMotDePasse());
+                motDePasse = request.getMotDePasse();
+            } else {
+                motDePasse = com.nadi.security.PasswordPolicy.generateTemporaryPassword();
+            }
             Utilisateur utilisateur = Utilisateur.builder()
                     .email(request.getEmail())
                     .motDePasseHash(passwordEncoder.encode(motDePasse))
@@ -137,8 +140,13 @@ public class ParentService {
         } else {
             parent.getUtilisateur().setMotDePasseHash(passwordEncoder.encode(nouveauMotDePasse));
             parent.getUtilisateur().setMustChangePassword(true);
+            bumpTokenVersion(parent.getUtilisateur());
             utilisateurRepository.save(parent.getUtilisateur());
         }
+    }
+
+    private void bumpTokenVersion(com.nadi.model.Utilisateur user) {
+        user.setTokenVersion(user.getTokenVersion() != null ? user.getTokenVersion() + 1 : 1L);
     }
 
     @Transactional
@@ -176,7 +184,7 @@ public class ParentService {
                 .dateNaissance(j.getDateNaissance())
                 .categorieId(j.getCategorie() != null ? j.getCategorie().getId() : null)
                 .categorieNom(j.getCategorie() != null ? j.getCategorie().getNom() : null)
-                .statutPaiement(j.getStatutPaiement().name())
+                .statutPaiement(j.getStatutPaiement() != null ? j.getStatutPaiement().name() : com.nadi.model.Joueur.StatutPaiement.A_JOUR.name())
                 .photoUrl(j.getPhotoUrl())
                 .build();
     }
