@@ -1,0 +1,7 @@
+# Test-only overrides so `mvn test` works without host environment secrets.
+# The main application.yml requires JWT_SECRET with no default, which made the
+# whole integration suite fail to boot. Test values only — never production keys.
+jwt:
+  secret: test-only-secret-key-that-is-long-enough-for-hmac-sha-256!!
+  access-token-expiration-ms: 3600000
+  refresh-token-expiration-ms: 604800000

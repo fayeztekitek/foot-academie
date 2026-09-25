@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "tokens:generate": "node ../.claude/skills/design-system/scripts/generate-tokens.cjs --config src/design-tokens.json -o src/design-tokens.css",
     "tokens:validate": "node ../.claude/skills/design-system/scripts/validate-tokens.cjs --dir src/"
@@ -41,7 +42,8 @@
     "tailwindcss": "^3.4.4",
     "typescript": "^7.0.2",
     "vite": "^5.2.12",
-    "vite-plugin-pwa": "^0.19.8"
+    "vite-plugin-pwa": "^0.19.8",
+    "vitest": "^2.1.9"
   },
   "dependencies_meta": {
     "@capacitor/core": {

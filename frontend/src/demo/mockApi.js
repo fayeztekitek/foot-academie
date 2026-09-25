@@ -67,6 +67,12 @@ export const MOCK_API = {
     POST: () => ({ data: { message: 'Mot de passe modifié avec succès' } })
   },
 
+  '/auth/tenants': {
+    GET: () => ({
+      data: [{ id: 1, slug: 'nadi-default', nom: 'Nadi Académie', ville: 'Tunis', logoUrl: null }]
+    })
+  },
+
   // ─── Dashboard ──────────────────────────────────
   '/dashboard/stats': {
     GET: () => {
@@ -138,6 +144,11 @@ export const MOCK_API = {
   },
 
   '/players/': {
+    GET: (id) => {
+      const player = DB.players.find(p => p.id === Number(id));
+      if (!player) throw { status: 404, message: 'Joueur non trouvé' };
+      return { data: player };
+    },
     PUT: (id, body) => {
       const idx = DB.players.findIndex(p => p.id === Number(id));
       if (idx === -1) throw { status: 404, message: 'Joueur non trouvé' };
@@ -589,30 +600,37 @@ export function handleMockRequest(method, url, body, params) {
   const idMatch = url.match(/\/(\d+)(\/|$)/);
   const numericId = idMatch ? idMatch[1] : null;
 
+  const tryHandler = (handler, withId) => {
+    try {
+      if (withId && numericId) {
+        return handler(numericId, body || params);
+      }
+      return handler(body || params);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  };
+
+  // Pass 1: exact matches on every pattern first, so that a longer route
+  // (e.g. /reports/payments/excel) is never shadowed by a shorter prefix
+  // (e.g. /reports/payments) declared earlier in the table.
   for (const [pattern, handlers] of Object.entries(MOCK_API)) {
     const handler = handlers[method];
     if (!handler) continue;
 
-    // Try exact match first
     if (pattern === normalizedUrl || pattern === url) {
-      try {
-        return handler(body || params);
-      } catch (err) {
-        return Promise.reject(err);
-      }
+      return tryHandler(handler, true);
     }
+  }
 
-    // Try pattern match (for routes like /players/ with IDs)
+  // Pass 2: prefix matches (for routes like /players/ with IDs)
+  for (const [pattern, handlers] of Object.entries(MOCK_API)) {
+    const handler = handlers[method];
+    if (!handler) continue;
+
     const cleanPattern = pattern.replace(/\/$/, '');
     if (url.startsWith(cleanPattern + '/') || url.startsWith(cleanPattern + '?')) {
-      try {
-        if (numericId) {
-          return handler(numericId, body || params);
-        }
-        return handler(body || params);
-      } catch (err) {
-        return Promise.reject(err);
-      }
+      return tryHandler(handler, true);
     }
   }
 

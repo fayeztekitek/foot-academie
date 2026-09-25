@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,13 +31,25 @@ class CategoryIntegrationTest {
 
     private String adminToken;
 
+    private static final AtomicInteger IP_SEQ = new AtomicInteger(200);
+
+    private static RequestPostProcessor freshIp() {
+        String ip = "10.20.50." + IP_SEQ.incrementAndGet();
+        return request -> {
+            request.setRemoteAddr(ip);
+            return request;
+        };
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         LoginRequest login = new LoginRequest();
         login.setEmail("admin@nadi.tn");
         login.setMotDePasse("admin123");
+        login.setTenantId(1L);
 
-        MvcResult result = mockMvc.perform(post("/auth/login")
+        MvcResult result = mockMvc.perform(post("/api/auth/login").contextPath("/api")
+                        .with(freshIp())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
                 .andExpect(status().isOk())
@@ -54,7 +69,7 @@ class CategoryIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/categories")
+        mockMvc.perform(post("/api/categories").contextPath("/api")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(catJson))
@@ -64,7 +79,7 @@ class CategoryIntegrationTest {
 
     @Test
     void listCategoriesReturnsResults() throws Exception {
-        mockMvc.perform(get("/categories")
+        mockMvc.perform(get("/api/categories").contextPath("/api")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
@@ -80,7 +95,7 @@ class CategoryIntegrationTest {
                 }
                 """;
 
-        MvcResult result = mockMvc.perform(post("/categories")
+        MvcResult result = mockMvc.perform(post("/api/categories").contextPath("/api")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createJson))
@@ -98,7 +113,7 @@ class CategoryIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(put("/categories/" + catId)
+        mockMvc.perform(put("/api/categories/" + catId).contextPath("/api")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateJson))
@@ -116,7 +131,7 @@ class CategoryIntegrationTest {
                 }
                 """;
 
-        MvcResult result = mockMvc.perform(post("/categories")
+        MvcResult result = mockMvc.perform(post("/api/categories").contextPath("/api")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(catJson))
@@ -125,7 +140,7 @@ class CategoryIntegrationTest {
 
         Long catId = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
 
-        mockMvc.perform(delete("/categories/" + catId)
+        mockMvc.perform(delete("/api/categories/" + catId).contextPath("/api")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
     }
@@ -135,8 +150,10 @@ class CategoryIntegrationTest {
         LoginRequest coachLogin = new LoginRequest();
         coachLogin.setEmail("coach@nadi.tn");
         coachLogin.setMotDePasse("coach123");
+        coachLogin.setTenantId(1L);
 
-        MvcResult coachResult = mockMvc.perform(post("/auth/login")
+        MvcResult coachResult = mockMvc.perform(post("/api/auth/login").contextPath("/api")
+                        .with(freshIp())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(coachLogin)))
                 .andExpect(status().isOk())
@@ -144,7 +161,7 @@ class CategoryIntegrationTest {
 
         String coachToken = objectMapper.readTree(coachResult.getResponse().getContentAsString()).get("accessToken").asText();
 
-        mockMvc.perform(delete("/categories/1")
+        mockMvc.perform(delete("/api/categories/1").contextPath("/api")
                         .header("Authorization", "Bearer " + coachToken))
                 .andExpect(status().isForbidden());
     }
