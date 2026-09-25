@@ -2,6 +2,7 @@ package com.nadi.service;
 
 import com.nadi.dto.AcademieRequest;
 import com.nadi.dto.AcademieResponse;
+import com.nadi.dto.TenantPublicResponse;
 import com.nadi.model.Academie;
 import com.nadi.model.Abonnement;
 import com.nadi.model.Categorie;
@@ -20,6 +21,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -53,6 +56,25 @@ public class AcademieService {
     }
 
     /**
+     * Public academy list for the login selector. Hit on every login screen
+     * visit but changes rarely, so it is cached; all academy mutations evict it.
+     */
+    @Cacheable("publicTenants")
+    @Transactional(readOnly = true)
+    public java.util.List<TenantPublicResponse> getActiveTenants() {
+        return academieRepository.findAll().stream()
+                .filter(Academie::getActive)
+                .map(a -> TenantPublicResponse.builder()
+                        .id(a.getId())
+                        .nom(a.getNom())
+                        .slug(a.getSlug())
+                        .ville(a.getVille())
+                        .logoUrl(a.getLogoUrl())
+                        .build())
+                .toList();
+    }
+
+    /**
      * Cross-tenant IDOR guard: only SUPER_ADMIN may touch any academy.
      * Other roles are restricted to their own tenant academy.
      */
@@ -74,6 +96,7 @@ public class AcademieService {
         return toResponse(academie);
     }
 
+    @CacheEvict(value = "publicTenants", allEntries = true)
     @Transactional
     public AcademieResponse create(AcademieRequest request) {
         if (academieRepository.existsBySlug(request.getSlug())) {
@@ -118,6 +141,7 @@ public class AcademieService {
         return toResponse(academie);
     }
 
+    @CacheEvict(value = "publicTenants", allEntries = true)
     @Transactional
     public AcademieResponse update(Long id, AcademieRequest request) {
         requireAcademyAccess(id);
@@ -138,6 +162,7 @@ public class AcademieService {
         return toResponse(academieRepository.save(academie));
     }
 
+    @CacheEvict(value = "publicTenants", allEntries = true)
     @Transactional
     public void delete(Long id) {
         Academie academie = academieRepository.findById(id)
@@ -168,6 +193,7 @@ public class AcademieService {
         log.info("Academie id={} deleted successfully", id);
     }
 
+    @CacheEvict(value = "publicTenants", allEntries = true)
     @Transactional
     public AcademieResponse toggleActive(Long id) {
         requireAcademyAccess(id);
@@ -182,6 +208,7 @@ public class AcademieService {
         return toResponse(academieRepository.save(academie));
     }
 
+    @CacheEvict(value = "publicTenants", allEntries = true)
     @Transactional
     public AcademieResponse deactivateIfUnpaid(Long id) {
         Academie academie = academieRepository.findById(id)

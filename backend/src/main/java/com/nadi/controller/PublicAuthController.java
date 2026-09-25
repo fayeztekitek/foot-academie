@@ -1,9 +1,8 @@
 package com.nadi.controller;
 
 import com.nadi.dto.TenantPublicResponse;
-import com.nadi.model.Academie;
-import com.nadi.repository.AcademieRepository;
 import com.nadi.repository.UtilisateurRepository;
+import com.nadi.service.AcademieService;
 import com.nadi.security.PasswordPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,22 +20,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PublicAuthController {
 
-    private final AcademieRepository academieRepository;
+    private final AcademieService academieService;
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/tenants")
     public List<TenantPublicResponse> getActiveTenants() {
-        return academieRepository.findAll().stream()
-                .filter(Academie::getActive)
-                .map(a -> TenantPublicResponse.builder()
-                        .id(a.getId())
-                        .nom(a.getNom())
-                        .slug(a.getSlug())
-                        .ville(a.getVille())
-                        .logoUrl(a.getLogoUrl())
-                        .build())
-                .toList();
+        return academieService.getActiveTenants();
     }
 
     @PostMapping("/admin/reset-password")

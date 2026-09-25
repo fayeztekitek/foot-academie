@@ -14,10 +14,29 @@ export default function Login() {
   const [showSettings, setShowSettings] = useState(false);
   const [tempUrl, setTempUrl] = useState(backendUrl);
 
-  const [tenants, setTenants] = useState([]);
-  const [selectedTenantId, setSelectedTenantId] = useState(null);
+  const TENANTS_CACHE_KEY = 'nadi_tenants_cache';
+
+  const loadCachedTenants = () => {
+    try {
+      const raw = localStorage.getItem(TENANTS_CACHE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed.tenants) ? parsed.tenants : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Stale-while-revalidate: paint the last known academy list instantly so a
+  // cold backend (or slow network) never blocks the login screen, then refresh.
+  const [tenants, setTenants] = useState(loadCachedTenants);
+  const [selectedTenantId, setSelectedTenantId] = useState(() => {
+    const cached = loadCachedTenants();
+    return cached.length === 1 ? cached[0].id : null;
+  });
   const [tenantsLoading, setTenantsLoading] = useState(true);
   const [tenantsError, setTenantsError] = useState(null);
+  const [tenantsStale, setTenantsStale] = useState(false);
 
   const fetchTenants = async () => {
     setTenantsLoading(true);
@@ -25,12 +44,26 @@ export default function Login() {
     try {
       const { data } = await authApi.getTenants();
       setTenants(data);
+      setTenantsStale(false);
+      try {
+        localStorage.setItem(TENANTS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), tenants: data }));
+      } catch {
+        // Private mode / quota — non-blocking.
+      }
       if (data.length === 1) {
         setSelectedTenantId(data[0].id);
+      } else if (data.length > 1) {
+        setSelectedTenantId(prev => (data.some(t => t.id === prev) ? prev : null));
       }
     } catch (err) {
       console.error('Failed to load tenants:', err);
-      setTenantsError('Impossible de charger les académies. Vérifiez l\'URL du serveur.');
+      const hasStale = loadCachedTenants().length > 0;
+      setTenantsStale(hasStale);
+      if (err.code === 'ECONNABORTED') {
+        setTenantsError('Le serveur met trop longtemps à répondre (démarrage en cours, réessayez dans quelques secondes).');
+      } else {
+        setTenantsError('Impossible de charger les académies. Vérifiez l\'URL du serveur.');
+      }
     } finally {
       setTenantsLoading(false);
     }
@@ -201,7 +234,7 @@ export default function Login() {
             {/* Tenant selector */}
             <div>
               <label className="label">Académie</label>
-              {tenantsError ? (
+              {tenantsError && tenants.length === 0 ? (
                 <div className="flex flex-col gap-2">
                   <div className="text-xs px-3 py-2 rounded-lg" style={{ background: '#FBE7E7', color: 'var(--red)' }}>
                     {tenantsError}
@@ -216,25 +249,42 @@ export default function Login() {
                   </button>
                 </div>
               ) : (
-                <div className="relative">
-                  <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-soft)' }} />
-                  <select
-                    value={selectedTenantId || ''}
-                    onChange={e => setSelectedTenantId(Number(e.target.value))}
-                    className="input-field pl-9"
-                    required
-                    disabled={tenantsLoading}
-                  >
-                    <option value="" disabled>
-                      {tenantsLoading ? 'Chargement...' : 'Sélectionner une académie'}
-                    </option>
-                    {tenants.map(t => (
-                      <option key={t.id} value={t.id}>
-                        {t.nom}{t.ville ? ` — ${t.ville}` : ''}
+                <>
+                  <div className="relative">
+                    <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-soft)' }} />
+                    <select
+                      value={selectedTenantId || ''}
+                      onChange={e => setSelectedTenantId(Number(e.target.value))}
+                      className="input-field pl-9"
+                      required
+                      disabled={tenantsLoading && tenants.length === 0}
+                    >
+                      <option value="" disabled>
+                        {tenantsLoading && tenants.length === 0 ? 'Chargement...' : 'Sélectionner une académie'}
                       </option>
-                    ))}
-                  </select>
-                </div>
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.nom}{t.ville ? ` — ${t.ville}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {(tenantsStale || (tenantsError && tenants.length > 0)) && (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <p className="text-[11px]" style={{ color: 'var(--gold, #92710C)' }}>
+                        Liste hors ligne — {tenantsError || 'actualisation en cours…' }
+                      </p>
+                      <button
+                        type="button"
+                        onClick={fetchTenants}
+                        className="flex items-center gap-1 text-[11px] underline"
+                        style={{ color: 'var(--ink-soft)' }}
+                      >
+                        <RefreshCw size={11} /> Réessayer
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PublicAuthControllerTest {
 
     @Mock
-    private AcademieRepository academieRepository;
+    private com.nadi.service.AcademieService academieService;
     @Mock
     private UtilisateurRepository utilisateurRepository;
     @Mock
@@ -40,7 +40,7 @@ class PublicAuthControllerTest {
     @BeforeEach
     void setUp() {
         PublicAuthController controller = new PublicAuthController(
-                academieRepository, utilisateurRepository, passwordEncoder);
+                academieService, utilisateurRepository, passwordEncoder);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
         lenient().when(passwordEncoder.encode(anyString())).thenReturn("HASH");
     }
