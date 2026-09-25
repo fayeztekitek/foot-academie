@@ -66,4 +66,14 @@ class JoueurRequestValidationTest {
     void nullPhotoIsValid() {
         assertTrue(validator.validate(base()).isEmpty());
     }
+
+    @Test
+    void emptyPhotoIsValid() {
+        // Edit forms send "" when no photo is set: rejecting it broke every
+        // update of photo-less records (HTTP 400 regression).
+        JoueurRequest request = base();
+        request.setPhotoUrl("");
+
+        assertTrue(validator.validate(request).isEmpty());
+    }
 }

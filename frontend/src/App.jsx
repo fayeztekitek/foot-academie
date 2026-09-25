@@ -30,7 +30,13 @@ const queryClient = new QueryClient({
     queries: { retry: 1, refetchOnWindowFocus: false },
     mutations: {
       onError: (error) => {
-        const msg = error?.response?.data?.message || error?.message || 'Une erreur est survenue';
+        // Bean-validation 400s carry an `errors` map instead of `message`:
+        // surface the field details so users know what to fix.
+        const details = error?.response?.data?.errors;
+        const detailMsg = details && typeof details === 'object'
+          ? Object.entries(details).map(([field, msg]) => `${field} : ${msg}`).join(' — ')
+          : null;
+        const msg = error?.response?.data?.message || detailMsg || error?.message || 'Une erreur est survenue';
         console.error('[Mutation error]', msg);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('nadi-toast', { detail: { type: 'error', message: msg } }));
