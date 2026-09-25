@@ -1,6 +1,7 @@
 # Backend
 backend/target/
 backend/data/
+backend/uploads/
 *.class
 *.jar
 *.war
