@@ -5,7 +5,6 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -29,13 +28,11 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(Authentication authentication, Long tenantId, long tokenVersion) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        return generateToken(userDetails.getUsername(), accessTokenExpirationMs, tenantId, "access", tokenVersion);
+        return generateToken(authentication.getName(), accessTokenExpirationMs, tenantId, "access", tokenVersion);
     }
 
     public String generateRefreshToken(Authentication authentication, Long tenantId, long tokenVersion) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        return generateToken(userDetails.getUsername(), refreshTokenExpirationMs, tenantId, "refresh", tokenVersion);
+        return generateToken(authentication.getName(), refreshTokenExpirationMs, tenantId, "refresh", tokenVersion);
     }
 
     public String generateAccessTokenFromEmail(String email, Long tenantId, long tokenVersion) {

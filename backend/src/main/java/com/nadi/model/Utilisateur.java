@@ -44,8 +44,10 @@ public class Utilisateur {
     @Column(nullable = false)
     private Boolean mustChangePassword = false;
 
+    // Nullable on purpose: ddl-auto=update cannot add a NOT NULL column to
+    // the populated prod table. Null is treated as version 0 everywhere.
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "token_version")
     private Long tokenVersion = 0L;
 
     @Column(name = "tenant_id", nullable = false)
