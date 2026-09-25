@@ -21,8 +21,8 @@ public class EntraineurRequest {
     private String email;
 
     @jakarta.validation.constraints.Pattern(
-            regexp = "^(https?://|data:image/(png|jpeg|gif|webp);base64,).{0,2000000}$",
-            message = "URL de photo invalide (http(s) ou image base64 uniquement)")
+            regexp = "^(https?://|data:image/(png|jpeg|gif|webp);base64,).{0,5000000}$",
+            message = "URL de photo invalide (http(s) ou image base64 ≤ ~3,5 Mo uniquement)")
     private String photoUrl;
 
     private String motDePasse;

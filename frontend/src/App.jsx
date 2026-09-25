@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -97,12 +98,38 @@ function AppRoutes() {
   );
 }
 
+// Global toast renderer: mutation errors are broadcast as 'nadi-toast'
+// events (see queryClient above). Without this listener every failure was
+// silent — the button spun, then nothing happened.
+function ToastListener() {
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    let timer;
+    const handler = (e) => {
+      setToast(e.detail);
+      clearTimeout(timer);
+      timer = setTimeout(() => setToast(null), 5000);
+    };
+    window.addEventListener('nadi-toast', handler);
+    return () => {
+      window.removeEventListener('nadi-toast', handler);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  if (!toast) return null;
+  const type = toast.type === 'success' ? 'toast-success' : 'toast-error';
+  return <div className={`toast ${type}`}>{toast.message}</div>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AppRoutes />
+          <ToastListener />
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
