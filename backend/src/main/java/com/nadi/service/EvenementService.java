@@ -13,7 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +30,7 @@ public class EvenementService {
     private final NotificationRepository notificationRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final SecurityUtils securityUtils;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<EvenementResponse> getAll() {
@@ -97,6 +101,7 @@ public class EvenementService {
 
         convocations = convocationRepository.saveAll(convocations);
 
+        Set<Long> alreadyNotified = new HashSet<>();
         for (Convocation conv : convocations) {
             if (conv.getParent() != null && conv.getParent().getUtilisateur() != null) {
                 Notification notification = Notification.builder()
@@ -109,10 +114,38 @@ public class EvenementService {
                                 + (evenement.getLieu() != null ? " à " + evenement.getLieu() : ""))
                         .build();
                 notificationRepository.save(notification);
+                alreadyNotified.add(conv.getParent().getUtilisateur().getId());
             }
         }
 
+        notifyAllUsersExcept(evenement, currentUser, alreadyNotified);
+
         return toResponse(evenement);
+    }
+
+    /**
+     * Fan-out: every active account of the academy (coaches, parents linked
+     * to an account, fellow admins) is notified of a new event — except its
+     * creator and users already notified through their child's convocation.
+     */
+    private void notifyAllUsersExcept(Evenement evenement, Utilisateur creator, Set<Long> alreadyNotified) {
+        String details = "Nouvel événement \""
+                + evenement.getTitre() + "\""
+                + (evenement.getDateDebut() != null ? " le " + evenement.getDateDebut() : "")
+                + (evenement.getLieu() != null ? " à " + evenement.getLieu() : "");
+        for (Utilisateur user : utilisateurRepository.findAll()) {
+            if (user.getId() == null || Objects.equals(user.getId(), creator.getId())) {
+                continue;
+            }
+            if (Boolean.FALSE.equals(user.getActif())) {
+                continue;
+            }
+            if (alreadyNotified.contains(user.getId())) {
+                continue;
+            }
+            notificationService.create(user, Notification.TypeNotification.COMPETITION,
+                    "Nouvel événement : " + evenement.getTitre(), details);
+        }
     }
 
     @Transactional

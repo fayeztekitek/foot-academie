@@ -21,6 +21,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +40,8 @@ class EvenementServiceTest {
     private NotificationRepository notificationRepository;
     @Mock
     private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private NotificationService notificationService;
 
     private EvenementService evenementService;
 
@@ -45,7 +49,8 @@ class EvenementServiceTest {
     void setUp() {
         evenementService = new EvenementService(
                 evenementRepository, convocationRepository, joueurRepository, parentRepository,
-                notificationRepository, utilisateurRepository, new SecurityUtils(utilisateurRepository));
+                notificationRepository, utilisateurRepository, new SecurityUtils(utilisateurRepository),
+                notificationService);
     }
 
     @AfterEach
@@ -144,5 +149,74 @@ class EvenementServiceTest {
 
         assertEquals(1, responses.size());
         verify(convocationRepository).findByParentUserId(42L);
+    }
+
+    private com.nadi.dto.EvenementRequest eventRequest() {
+        com.nadi.dto.EvenementRequest request = new com.nadi.dto.EvenementRequest();
+        request.setTitre("Tournoi");
+        request.setTypeEvenement("TOURNOI");
+        request.setDateDebut(java.time.LocalDate.now());
+        request.setJoueurIds(List.of(1L));
+        return request;
+    }
+
+    private Utilisateur adminUser(Long id) {
+        return Utilisateur.builder()
+                .id(id).email("admin" + id + "@nadi.tn").motDePasseHash("hash")
+                .role(Role.ADMIN).actif(true).tenantId(1L).build();
+    }
+
+    @Test
+    void createNotifiesEveryoneExceptCreator() {
+        Utilisateur creator = adminUser(1L);
+        authenticate(creator);
+        Utilisateur coach = Utilisateur.builder()
+                .id(7L).email("coach@nadi.tn").motDePasseHash("hash")
+                .role(Role.COACH).actif(true).tenantId(1L).build();
+        Utilisateur otherParent = parentUser(55L);
+        when(evenementRepository.save(any())).thenAnswer(i -> {
+            Evenement e = i.getArgument(0);
+            e.setId(3L);
+            return e;
+        });
+        when(joueurRepository.findById(1L)).thenReturn(Optional.empty());
+        when(convocationRepository.saveAll(any())).thenReturn(List.of());
+        when(utilisateurRepository.findAll()).thenReturn(List.of(creator, coach, otherParent));
+
+        evenementService.create(eventRequest());
+
+        verify(notificationService).create(eq(coach), any(), anyString(), anyString());
+        verify(notificationService).create(eq(otherParent), any(), anyString(), anyString());
+        verify(notificationService, never()).create(eq(creator), any(), any(), any());
+    }
+
+    @Test
+    void createSkipsAlreadyNotifiedConvocationParents() {
+        Utilisateur creator = adminUser(1L);
+        authenticate(creator);
+        Utilisateur convenedParent = parentUser(42L);
+        Joueur joueur = Joueur.builder().prenom("J").nom("N")
+                .dateNaissance(java.time.LocalDate.of(2015, 1, 1)).build();
+        joueur.setId(1L);
+        Parent parent = Parent.builder().id(10L).prenom("P").nom("N").email("p@nadi.tn").build();
+        parent.setUtilisateur(convenedParent);
+        joueur.setParent(parent);
+        when(evenementRepository.save(any())).thenAnswer(i -> {
+            Evenement e = i.getArgument(0);
+            e.setId(3L);
+            return e;
+        });
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(joueur));
+        when(convocationRepository.existsByEvenementAndJoueur(any(), any())).thenReturn(false);
+        when(convocationRepository.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+        when(notificationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(utilisateurRepository.findAll()).thenReturn(List.of(creator, convenedParent));
+
+        evenementService.create(eventRequest());
+
+        // Convened parent got the specific convocation notification (direct
+        // repository save), so the fan-out must not duplicate it.
+        verify(notificationService, never()).create(eq(convenedParent), any(), any(), any());
+        verify(notificationService, never()).create(eq(creator), any(), any(), any());
     }
 }

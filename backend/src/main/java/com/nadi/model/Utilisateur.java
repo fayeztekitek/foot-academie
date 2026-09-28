@@ -30,6 +30,9 @@ public class Utilisateur {
     @Column(nullable = false)
     private String email;
 
+    // Never serialized: GET /notifications returns Notification entities
+    // embedding their Utilisateur, which used to leak password hashes.
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(nullable = false)
     private String motDePasseHash;
 

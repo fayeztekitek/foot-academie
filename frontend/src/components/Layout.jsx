@@ -6,7 +6,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import NotificationBell from './NotificationBell';
 import ChatWidget from './ai/ChatWidget';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { LayoutDashboard, Users, UserCog, CreditCard, Calendar, GraduationCap, FolderOpen, Upload, Menu, X, LogOut, Bell, Smartphone, ClipboardCheck, Trophy, Building2, BarChart3, Mail, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, UserCog, CreditCard, Calendar, GraduationCap, FolderOpen, Upload, Menu, X, LogOut, Smartphone, ClipboardCheck, Trophy, Building2, BarChart3, Mail, Shield } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['ADMIN', 'COACH', 'PARENT'] },
@@ -169,9 +169,8 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full border flex items-center justify-center relative cursor-pointer hover:bg-gray-50 transition-colors"
+            <div className="w-9 h-9 rounded-full border relative"
               style={{ borderColor: 'var(--line)' }}>
-              <Bell size={15} className="text-ink-soft" />
               <NotificationBell />
             </div>
             <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${online ? 'bg-grass-light text-grass-dark' : 'bg-red-light text-red-dark'}`}>
@@ -196,8 +195,7 @@ export default function Layout() {
           </button>
           <div className="font-bebas text-lg text-pitch-dark tracking-wide">NADI</div>
           <div className="flex items-center gap-1">
-            <div className="w-9 h-9 flex items-center justify-center relative rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-              <Bell size={18} className="text-ink-soft" />
+            <div className="w-9 h-9 relative rounded-lg">
               <NotificationBell />
             </div>
             <button

@@ -61,4 +61,18 @@ class NotificationServiceTest {
 
         assertThrows(RuntimeException.class, () -> service().markAsReadForUser(999L, 42L));
     }
+
+    @Test
+    void serializedNotificationNeverLeaksPasswordHash() throws Exception {
+        // GET /notifications returns Notification entities embedding their
+        // Utilisateur: the hash must never reach the client (offline brute
+        // force if ever captured via XSS, logs or backups).
+        Notification notification = notification(42L);
+        notification.getUtilisateur().setMotDePasseHash("SECRET-HASH");
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(notification);
+
+        assertFalse(json.contains("motDePasseHash"));
+        assertFalse(json.contains("SECRET-HASH"));
+        assertTrue(json.contains("o@nadi.tn"));
+    }
 }
