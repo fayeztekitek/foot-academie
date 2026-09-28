@@ -22,6 +22,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -137,6 +138,125 @@ class EvenementServiceTest {
 
         assertEquals("REFUSE", response.getStatut());
         assertNotNull(response.getDateReponse());
+    }
+
+    private com.nadi.model.Evenement event(Long id) {
+        com.nadi.model.Evenement event = com.nadi.model.Evenement.builder()
+                .titre("Tournoi").typeEvenement(com.nadi.model.Evenement.TypeEvenement.TOURNOI)
+                .dateDebut(java.time.LocalDate.now()).lieu("Tunis").build();
+        event.setId(id);
+        return event;
+    }
+
+    private Joueur joueurWithCategory(Long id, Long parentId, Utilisateur user, String categorie) {
+        Joueur joueur = Joueur.builder().prenom("J").nom("N")
+                .dateNaissance(java.time.LocalDate.of(2015, 1, 1)).build();
+        joueur.setId(id);
+        Parent parent = Parent.builder().id(parentId).prenom("P").nom("N").email("p@nadi.tn").build();
+        parent.setUtilisateur(user);
+        joueur.setParent(parent);
+        if (categorie != null) {
+            com.nadi.model.Categorie cat = com.nadi.model.Categorie.builder().nom(categorie).build();
+            cat.setId(4L);
+            joueur.setCategorie(cat);
+        }
+        return joueur;
+    }
+
+    @Test
+    void createDedupesOverlappingSelections() {
+        Utilisateur creator = adminUser(1L);
+        authenticate(creator);
+        Utilisateur coach = Utilisateur.builder()
+                .id(7L).email("coach@nadi.tn").motDePasseHash("hash")
+                .role(Role.COACH).actif(true).tenantId(1L).build();
+        when(evenementRepository.save(any())).thenAnswer(i -> {
+            com.nadi.model.Evenement e = i.getArgument(0);
+            e.setId(3L);
+            return e;
+        });
+        Joueur one = joueurWithCategory(1L, 10L, parentUser(42L), "U13");
+        Joueur two = joueurWithCategory(2L, 11L, parentUser(55L), "U13");
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(one));
+        when(joueurRepository.findById(2L)).thenReturn(Optional.of(two));
+        when(joueurRepository.findByCategorieId(4L)).thenReturn(List.of(one, two));
+        when(convocationRepository.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+        when(notificationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(utilisateurRepository.findAll()).thenReturn(List.of(creator, coach));
+
+        com.nadi.dto.EvenementRequest request = eventRequest();
+        request.setJoueurIds(List.of(1L));
+        request.setCategorieIds(List.of(4L));
+        evenementService.create(request);
+
+        org.mockito.ArgumentCaptor<List> captor = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(convocationRepository).saveAll(captor.capture());
+        assertEquals(2, captor.getValue().size());
+    }
+
+    @Test
+    void updateSyncsRosterAddAndRemove() {
+        Utilisateur creator = adminUser(1L);
+        authenticate(creator);
+        com.nadi.model.Evenement event = event(3L);
+        when(evenementRepository.findById(3L)).thenReturn(Optional.of(event));
+        Convocation existing = convocation(10L, parentUser(42L));
+        existing.setId(100L);
+        when(convocationRepository.findByEvenementId(3L)).thenReturn(List.of(existing));
+        Joueur two = joueurWithCategory(2L, 11L, parentUser(55L), "U13");
+        when(joueurRepository.findById(2L)).thenReturn(Optional.of(two));
+        when(convocationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(convocationRepository.findByEvenement(event)).thenReturn(List.of());
+
+        com.nadi.dto.EvenementRequest request = new com.nadi.dto.EvenementRequest();
+        request.setLieu("Nouveau stade");
+        request.setJoueurIds(List.of(2L));
+        evenementService.update(3L, request);
+
+        // withdrawn convocation removed, new player added + parent notified
+        org.mockito.ArgumentCaptor<Iterable> deleteCaptor =
+                org.mockito.ArgumentCaptor.forClass(Iterable.class);
+        verify(convocationRepository).deleteAll(deleteCaptor.capture());
+        int removed = 0;
+        for (Object ignored : deleteCaptor.getValue()) {
+            removed++;
+        }
+        assertEquals(1, removed);
+        org.mockito.ArgumentCaptor<Utilisateur> userCaptor =
+                org.mockito.ArgumentCaptor.forClass(Utilisateur.class);
+        verify(notificationService).create(userCaptor.capture(), any(), anyString(), anyString());
+        assertEquals(55L, userCaptor.getValue().getId());
+        assertEquals("Nouveau stade", event.getLieu());
+    }
+
+    @Test
+    void updateWithoutRosterLeavesConvocationsUntouched() {
+        authenticate(adminUser(1L));
+        com.nadi.model.Evenement event = event(3L);
+        when(evenementRepository.findById(3L)).thenReturn(Optional.of(event));
+        when(convocationRepository.findByEvenement(event)).thenReturn(List.of());
+
+        com.nadi.dto.EvenementRequest request = new com.nadi.dto.EvenementRequest();
+        request.setLieu("Autre stade");
+        evenementService.update(3L, request);
+
+        verify(convocationRepository, never()).deleteAll(any());
+        verify(convocationRepository, never()).save(any());
+    }
+
+    @Test
+    void convocationResponseCarriesCategory() {
+        Utilisateur user = parentUser(42L);
+        authenticate(user);
+        Convocation convocation = convocation(10L, user);
+        convocation.getJoueur().setCategorie(
+                com.nadi.model.Categorie.builder().nom("U13").build());
+        when(convocationRepository.findById(1L)).thenReturn(Optional.of(convocation));
+        when(convocationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        ConvocationResponse response = evenementService.respondToConvocation(1L, true);
+
+        assertEquals("U13", response.getCategorieNom());
     }
 
     @Test

@@ -67,35 +67,38 @@ public class EvenementService {
 
         evenement = evenementRepository.save(evenement);
 
-        List<Convocation> convocations = new ArrayList<>();
-
+        // Dedupe by joueur: a player selected individually AND through their
+        // category (or twice) must yield a single convocation. The DB
+        // exists-check alone cannot catch in-memory duplicates.
+        Set<Long> joueurIds = new java.util.LinkedHashSet<>();
         if (request.getJoueurIds() != null) {
             for (Long joueurId : request.getJoueurIds()) {
-                Joueur joueur = joueurRepository.findById(joueurId).orElse(null);
-                if (joueur != null && !convocationRepository.existsByEvenementAndJoueur(evenement, joueur)) {
-                    Convocation c = Convocation.builder()
-                            .evenement(evenement)
-                            .joueur(joueur)
-                            .parent(joueur.getParent())
-                            .build();
-                    convocations.add(c);
+                if (joueurId != null) {
+                    joueurIds.add(joueurId);
+                }
+            }
+        }
+        if (request.getCategorieIds() != null) {
+            for (Long catId : request.getCategorieIds()) {
+                if (catId == null) {
+                    continue;
+                }
+                for (Joueur joueur : joueurRepository.findByCategorieId(catId)) {
+                    joueurIds.add(joueur.getId());
                 }
             }
         }
 
-        if (request.getCategorieIds() != null) {
-            for (Long catId : request.getCategorieIds()) {
-                List<Joueur> joueurs = joueurRepository.findByCategorieId(catId);
-                for (Joueur joueur : joueurs) {
-                    if (!convocationRepository.existsByEvenementAndJoueur(evenement, joueur)) {
-                        Convocation c = Convocation.builder()
-                                .evenement(evenement)
-                                .joueur(joueur)
-                                .parent(joueur.getParent())
-                                .build();
-                        convocations.add(c);
-                    }
-                }
+        List<Convocation> convocations = new ArrayList<>();
+        for (Long joueurId : joueurIds) {
+            Joueur joueur = joueurRepository.findById(joueurId).orElse(null);
+            if (joueur != null && !convocationRepository.existsByEvenementAndJoueur(evenement, joueur)) {
+                Convocation c = Convocation.builder()
+                        .evenement(evenement)
+                        .joueur(joueur)
+                        .parent(joueur.getParent())
+                        .build();
+                convocations.add(c);
             }
         }
 
@@ -110,8 +113,7 @@ public class EvenementService {
                         .message("Convocation: " + evenement.getTitre())
                         .details("Votre enfant " + conv.getJoueur().getPrenom() + " " + conv.getJoueur().getNom()
                                 + " est convocqué à l'événement \"" + evenement.getTitre() + "\""
-                                + (evenement.getDateDebut() != null ? " le " + evenement.getDateDebut() : "")
-                                + (evenement.getLieu() != null ? " à " + evenement.getLieu() : ""))
+                                + describeWhenWhere(evenement))
                         .build();
                 notificationRepository.save(notification);
                 alreadyNotified.add(conv.getParent().getUtilisateur().getId());
@@ -163,7 +165,96 @@ public class EvenementService {
         if (request.getLieu() != null) evenement.setLieu(request.getLieu());
         if (request.getTerrain() != null) evenement.setTerrain(request.getTerrain());
 
-        return toResponse(evenementRepository.save(evenement));
+        evenementRepository.save(evenement);
+
+        if (request.getJoueurIds() != null || request.getCategorieIds() != null) {
+            syncConvocations(evenement, request.getJoueurIds(), request.getCategorieIds());
+        }
+
+        return toResponse(evenement);
+    }
+
+    /**
+     * Reconciles convocations with the desired roster: adds missing players
+     * (notifying their parents) and removes withdrawn ones. A null list means
+     * "leave unchanged", an empty list means "remove all from that source".
+     */
+    private void syncConvocations(Evenement evenement, List<Long> joueurIds, List<Long> categorieIds) {
+        Set<Long> desired = new java.util.LinkedHashSet<>();
+        if (joueurIds != null) {
+            for (Long joueurId : joueurIds) {
+                if (joueurId != null) {
+                    desired.add(joueurId);
+                }
+            }
+        }
+        if (categorieIds != null) {
+            for (Long catId : categorieIds) {
+                if (catId == null) {
+                    continue;
+                }
+                for (Joueur joueur : joueurRepository.findByCategorieId(catId)) {
+                    desired.add(joueur.getId());
+                }
+            }
+        }
+
+        List<Convocation> existing = convocationRepository.findByEvenementId(evenement.getId());
+        Set<Long> existingJoueurIds = new java.util.HashSet<>();
+        List<Convocation> toRemove = new ArrayList<>();
+        for (Convocation convocation : existing) {
+            if (convocation.getJoueur() != null && desired.contains(convocation.getJoueur().getId())) {
+                existingJoueurIds.add(convocation.getJoueur().getId());
+            } else {
+                toRemove.add(convocation);
+            }
+        }
+        convocationRepository.deleteAll(toRemove);
+
+        for (Long joueurId : desired) {
+            if (existingJoueurIds.contains(joueurId)) {
+                continue;
+            }
+            Joueur joueur = joueurRepository.findById(joueurId).orElse(null);
+            if (joueur == null) {
+                continue;
+            }
+            Convocation convocation = convocationRepository.save(Convocation.builder()
+                    .evenement(evenement)
+                    .joueur(joueur)
+                    .parent(joueur.getParent())
+                    .build());
+            notifyParent(convocation, evenement);
+        }
+    }
+
+    private void notifyParent(Convocation convocation, Evenement evenement) {
+        if (convocation.getParent() == null || convocation.getParent().getUtilisateur() == null) {
+            return;
+        }
+        notificationService.create(convocation.getParent().getUtilisateur(),
+                Notification.TypeNotification.COMPETITION,
+                "Convocation: " + evenement.getTitre(),
+                "Votre enfant " + convocation.getJoueur().getPrenom() + " " + convocation.getJoueur().getNom()
+                        + " est convocqué à l'événement \"" + evenement.getTitre() + "\""
+                        + describeWhenWhere(evenement));
+    }
+
+    private static String describeWhenWhere(Evenement evenement) {
+        StringBuilder details = new StringBuilder();
+        if (evenement.getDateDebut() != null) {
+            details.append(" le ").append(evenement.getDateDebut());
+        }
+        if (evenement.getHeureDebut() != null) {
+            details.append(" à ").append(evenement.getHeureDebut());
+            if (evenement.getHeureFin() != null) {
+                details.append("-").append(evenement.getHeureFin());
+            }
+        }
+        if (evenement.getLieu() != null) {
+            details.append(", ").append(evenement.getLieu());
+        }
+        return details.toString();
     }
 
     @Transactional
@@ -247,6 +338,7 @@ public class EvenementService {
                 .joueurId(c.getJoueur().getId())
                 .joueurPrenom(c.getJoueur().getPrenom())
                 .joueurNom(c.getJoueur().getNom())
+                .categorieNom(c.getJoueur().getCategorie() != null ? c.getJoueur().getCategorie().getNom() : null)
                 .parentId(c.getParent() != null ? c.getParent().getId() : null)
                 .parentPrenom(c.getParent() != null ? c.getParent().getPrenom() : null)
                 .parentNom(c.getParent() != null ? c.getParent().getNom() : null)

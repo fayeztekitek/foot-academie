@@ -35,20 +35,20 @@ public class EvenementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COACH')")
     public ResponseEntity<EvenementResponse> create(@Valid @RequestBody EvenementRequest request) {
         EvenementResponse response = evenementService.create(request);
         return ResponseEntity.created(URI.create("/events/" + response.getId())).body(response);
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COACH')")
     public ResponseEntity<EvenementResponse> update(@PathVariable Long id, @RequestBody EvenementRequest request) {
         return ResponseEntity.ok(evenementService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         evenementService.delete(id);
         return ResponseEntity.noContent().build();

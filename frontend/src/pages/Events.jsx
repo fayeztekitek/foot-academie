@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Pencil,
 } from 'lucide-react';
 
 const TYPE_LABELS = {
@@ -100,6 +101,7 @@ export default function Events() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   const [newEvent, setNewEvent] = useState({
     titre: '',
@@ -137,8 +139,27 @@ export default function Events() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       setShowCreateModal(false);
+      setEditingEvent(null);
       resetForm();
     },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => eventsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['my-convocations'] });
+      queryClient.invalidateQueries({ queryKey: ['event-convocations'] });
+      setShowCreateModal(false);
+      setEditingEvent(null);
+      resetForm();
+    },
+  });
+
+  const { data: detailConvocations = [] } = useQuery({
+    queryKey: ['event-convocations', selectedEvent?.id],
+    queryFn: () => eventsApi.getConvocations(selectedEvent.id).then(r => r.data || []),
+    enabled: !!selectedEvent && showDetailModal,
   });
 
   const deleteMutation = useMutation({
@@ -243,6 +264,32 @@ export default function Events() {
     });
   }
 
+  function openEditModal() {
+    if (!selectedEvent) return;
+    setEditingEvent(selectedEvent);
+    setNewEvent({
+      titre: selectedEvent.titre || '',
+      typeEvenement: selectedEvent.typeEvenement || 'MATCH',
+      dateDebut: selectedEvent.dateDebut || '',
+      dateFin: selectedEvent.dateFin || '',
+      heureDebut: selectedEvent.heureDebut || '',
+      heureFin: selectedEvent.heureFin || '',
+      lieu: selectedEvent.lieu || '',
+      terrain: selectedEvent.terrain || '',
+      description: selectedEvent.description || '',
+      joueurIds: detailConvocations.map(c => c.joueurId),
+      categorieIds: [],
+    });
+    setShowDetailModal(false);
+    setShowCreateModal(true);
+  }
+
+  function closeFormModal() {
+    setShowCreateModal(false);
+    setEditingEvent(null);
+    resetForm();
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     // Payload aligned with EvenementRequest: typeEvenement (not `type`),
@@ -260,7 +307,11 @@ export default function Events() {
       joueurIds: newEvent.joueurIds,
       categorieIds: newEvent.categorieIds,
     };
-    createMutation.mutate(payload);
+    if (editingEvent) {
+      updateMutation.mutate({ id: editingEvent.id, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   }
 
   function handleDelete() {
@@ -316,6 +367,11 @@ export default function Events() {
                     {(conv.joueurPrenom || conv.joueurNom) && (
                       <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>
                         {' '}— {conv.joueurPrenom} {conv.joueurNom}
+                      </span>
+                    )}
+                    {conv.categorieNom && (
+                      <span className="pill" style={{ marginLeft: 8, fontSize: '0.7rem' }}>
+                        {conv.categorieNom}
                       </span>
                     )}
                   </div>
@@ -595,9 +651,9 @@ export default function Events() {
                             <MapPin size={13} /> {ev.lieu}
                           </span>
                         )}
-                        {ev.convocations && (
+                        {ev.nbConvocations > 0 && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Users size={13} /> {ev.convocations.length}
+                            <Users size={13} /> {ev.nbConvocations}
                           </span>
                         )}
                       </div>
@@ -634,7 +690,7 @@ export default function Events() {
             zIndex: 1000,
             padding: '1rem',
           }}
-          onClick={() => setShowCreateModal(false)}
+          onClick={closeFormModal}
         >
           <div
             className="panel"
@@ -646,9 +702,9 @@ export default function Events() {
                 className="font-bebas"
                 style={{ fontSize: '1.5rem', color: 'var(--pitch-dark)', margin: 0 }}
               >
-                Nouvel événement
+                {editingEvent ? "Modifier l'événement" : 'Nouvel événement'}
               </h2>
-              <button className="btn-ghost" onClick={() => setShowCreateModal(false)}>
+              <button className="btn-ghost" onClick={closeFormModal}>
                 <X size={20} />
               </button>
             </div>
@@ -852,16 +908,18 @@ export default function Events() {
                   <button
                     type="button"
                     className="btn-ghost"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={closeFormModal}
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
                     className="btn-primary"
-                    disabled={createMutation.isPending}
+                    disabled={createMutation.isPending || updateMutation.isPending}
                   >
-                    {createMutation.isPending ? 'Création...' : 'Créer'}
+                    {editingEvent
+                      ? (updateMutation.isPending ? 'Mise à jour...' : 'Mettre à jour')
+                      : (createMutation.isPending ? 'Création...' : 'Créer')}
                   </button>
                 </div>
               </div>
@@ -910,6 +968,15 @@ export default function Events() {
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
+                {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'COACH') && (
+                  <button
+                    className="btn-ghost"
+                    onClick={openEditModal}
+                    title="Modifier (joueurs, catégories, lieu…)"
+                  >
+                    <Pencil size={18} />
+                  </button>
+                )}
                 <button
                   className="btn-ghost"
                   style={{ color: 'var(--red)' }}
@@ -947,16 +1014,16 @@ export default function Events() {
               )}
             </div>
 
-            {selectedEvent.convocations && selectedEvent.convocations.length > 0 && (
+            {detailConvocations.length > 0 && (
               <div style={{ marginTop: '1.25rem' }}>
                 <h3
                   className="font-bebas"
                   style={{ fontSize: '1.1rem', color: 'var(--pitch-dark)', marginBottom: '0.75rem' }}
                 >
-                  Convocations ({selectedEvent.convocations.length})
+                  Convocations ({detailConvocations.length})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {selectedEvent.convocations.map((c) => (
+                  {detailConvocations.map((c) => (
                     <div
                       key={c.id}
                       style={{
@@ -970,7 +1037,12 @@ export default function Events() {
                       }}
                     >
                       <span style={{ color: 'var(--pitch-dark)', fontWeight: 500 }}>
-                        {c.joueur?.prenom} {c.joueur?.nom || c.utilisateur?.prenom + ' ' + c.utilisateur?.nom}
+                        {c.joueurPrenom} {c.joueurNom}
+                        {c.categorieNom && (
+                          <span className="pill" style={{ marginLeft: 8, fontSize: '0.7rem' }}>
+                            {c.categorieNom}
+                          </span>
+                        )}
                       </span>
                       <span
                         className="pill"

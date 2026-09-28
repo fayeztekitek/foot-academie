@@ -5,19 +5,26 @@ import com.nadi.dto.CreneauResponse;
 import com.nadi.model.Categorie;
 import com.nadi.model.Creneau;
 import com.nadi.model.Entraineur;
+import com.nadi.model.Joueur;
 import com.nadi.model.JourSemaine;
+import com.nadi.model.Notification;
+import com.nadi.model.Utilisateur;
 import com.nadi.repository.CategorieRepository;
 import com.nadi.repository.CreneauRepository;
 import com.nadi.repository.EntraineurRepository;
 import com.nadi.repository.AbsenceRepository;
+import com.nadi.repository.JoueurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +36,8 @@ public class CreneauService {
     private final CategorieRepository categorieRepository;
     private final EntraineurRepository entraineurRepository;
     private final AbsenceRepository absenceRepository;
+    private final JoueurRepository joueurRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<CreneauResponse> getAll() {
@@ -108,7 +117,9 @@ public class CreneauService {
             creneau.setEntraineurs(entraineurs);
         }
 
-        return toResponse(creneauRepository.save(creneau));
+        Creneau saved = creneauRepository.save(creneau);
+        notifyCreneauChange(saved, "Nouvel entraînement");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -143,16 +154,90 @@ public class CreneauService {
         }
         creneau.setEntraineurs(entraineurs);
 
-        return toResponse(creneauRepository.save(creneau));
+        Creneau saved = creneauRepository.save(creneau);
+        notifyCreneauChange(saved, "Horaire d'entraînement modifié");
+        return toResponse(saved);
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!creneauRepository.existsById(id)) {
-            throw new RuntimeException("Créneau non trouvé: " + id);
-        }
+        Creneau creneau = creneauRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Créneau non trouvé: " + id));
+        notifyCreneauChange(creneau, "Entraînement supprimé");
         absenceRepository.deleteByCreneauId(id);
         creneauRepository.deleteById(id);
+    }
+
+    /**
+     * Notifies the assigned coaches and the parents of the category's
+     * players (one notification per account, children listed) with useful
+     * details: day, hours, location and coach.
+     */
+    private void notifyCreneauChange(Creneau creneau, String action) {
+        String categorie = creneau.getCategorie() != null ? creneau.getCategorie().getNom() : "?";
+        String when = prettyDay(creneau.getJourSemaine())
+                + " " + formatHour(creneau.getHeureDebut())
+                + "-" + formatHour(creneau.getHeureFin());
+        String where = creneau.getTerrain() != null ? creneau.getTerrain() : "terrain à confirmer";
+
+        Set<Entraineur> coaches = new HashSet<>();
+        if (creneau.getEntraineurs() != null) {
+            coaches.addAll(creneau.getEntraineurs());
+        }
+        if (creneau.getEntraineur() != null) {
+            coaches.add(creneau.getEntraineur());
+        }
+        String coachNames = coaches.stream()
+                .map(e -> e.getPrenom() + " " + e.getNom())
+                .sorted()
+                .collect(Collectors.joining(", "));
+
+        for (Entraineur coach : coaches) {
+            if (coach.getUtilisateur() == null) {
+                continue;
+            }
+            notificationService.create(coach.getUtilisateur(),
+                    Notification.TypeNotification.CHANGEMENT_HORAIRE,
+                    action + " " + categorie + " : " + when,
+                    when + " — " + where + " (" + categorie + ")");
+        }
+
+        Map<Long, List<String>> childrenByUser = new LinkedHashMap<>();
+        Map<Long, Utilisateur> usersById = new LinkedHashMap<>();
+        if (creneau.getCategorie() != null) {
+            for (Joueur joueur : joueurRepository.findByCategorieId(creneau.getCategorie().getId())) {
+                if (joueur.getParent() == null || joueur.getParent().getUtilisateur() == null) {
+                    continue;
+                }
+                Long userId = joueur.getParent().getUtilisateur().getId();
+                usersById.putIfAbsent(userId, joueur.getParent().getUtilisateur());
+                childrenByUser.computeIfAbsent(userId, k -> new ArrayList<>())
+                        .add(joueur.getPrenom() + " " + joueur.getNom());
+            }
+        }
+        for (Map.Entry<Long, List<String>> entry : childrenByUser.entrySet()) {
+            List<String> children = entry.getValue().stream().sorted().toList();
+            notificationService.create(usersById.get(entry.getKey()),
+                    Notification.TypeNotification.CHANGEMENT_HORAIRE,
+                    action + " (" + categorie + ")",
+                    "Enfant(s) : " + String.join(", ", children)
+                            + " — " + when + ", " + where
+                            + (coachNames.isEmpty() ? "" : " (Coach : " + coachNames + ")"));
+        }
+    }
+
+    private static String prettyDay(JourSemaine jour) {
+        if (jour == null) {
+            return "?";
+        }
+        String name = jour.name().toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    private static String formatHour(LocalTime time) {
+        return time != null
+                ? time.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                : "?";
     }
 
     private void validateNoOverlap(Long excludeId, String terrain, JourSemaine jour, LocalTime debut, LocalTime fin) {

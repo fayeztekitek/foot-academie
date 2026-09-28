@@ -138,6 +138,73 @@ public class ScheduledTasks {
         }
     }
 
+    /**
+     * Daily reminder, one notification per parent account: total pending
+     * amount with a per-child breakdown (month, amount, due date), so the
+     * message is immediately actionable.
+     */
+    @Scheduled(cron = "0 0 8 * * *")
+    public void notifyPendingPayments() {
+        log.info("Notifying parents of pending payments...");
+        LocalDate today = LocalDate.now();
+
+        List<Long> allTenantIds = academieRepository.findAll().stream()
+                .map(Academie::getId)
+                .toList();
+
+        for (Long tenantId : allTenantIds) {
+            try {
+                TenantContext.setTenantId(tenantId);
+                java.util.Map<Long, List<Paiement>> byUser = new java.util.LinkedHashMap<>();
+                java.util.Map<Long, Utilisateur> usersById = new java.util.LinkedHashMap<>();
+                for (Paiement paiement : paiementRepository.findPendingWithDetails()) {
+                    if (paiement.getDateEcheance() != null && paiement.getDateEcheance().isAfter(today)) {
+                        continue;
+                    }
+                    if (paiement.getParent() == null || paiement.getParent().getUtilisateur() == null) {
+                        continue;
+                    }
+                    Long userId = paiement.getParent().getUtilisateur().getId();
+                    usersById.putIfAbsent(userId, paiement.getParent().getUtilisateur());
+                    byUser.computeIfAbsent(userId, k -> new java.util.ArrayList<>()).add(paiement);
+                }
+
+                for (java.util.Map.Entry<Long, List<Paiement>> entry : byUser.entrySet()) {
+                    List<Paiement> pendings = entry.getValue();
+                    BigDecimal total = pendings.stream()
+                            .map(Paiement::getMontant)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    if (total.compareTo(BigDecimal.ZERO) <= 0) {
+                        continue;
+                    }
+                    String details = pendings.stream()
+                            .map(p -> {
+                                String month = p.getDateEcheance() != null
+                                        ? YearMonth.from(p.getDateEcheance()).getMonth()
+                                                .getDisplayName(java.time.format.TextStyle.FULL,
+                                                        java.util.Locale.FRENCH)
+                                                + " " + YearMonth.from(p.getDateEcheance()).getYear()
+                                        : "sans échéance";
+                                return p.getJoueur().getPrenom() + " " + p.getJoueur().getNom()
+                                        + " — " + month + " : " + p.getMontant() + " " + p.getDevise()
+                                        + " (échéance " + p.getDateEcheance() + ")";
+                            })
+                            .collect(java.util.stream.Collectors.joining("\n"));
+                    notificationService.create(usersById.get(entry.getKey()),
+                            Notification.TypeNotification.PAIEMENT_RAPPEL,
+                            "Mensualité en attente : " + total + " TND",
+                            details + "\nMerci de régulariser auprès de l'administration.");
+                }
+
+                log.info("Tenant {}: Pending payment reminders sent to {} parents.", tenantId, byUser.size());
+            } catch (Exception e) {
+                log.error("Error notifying pending payments for tenant {}: {}", tenantId, e.getMessage());
+            } finally {
+                TenantContext.clear();
+            }
+        }
+    }
+
     @Scheduled(cron = "0 1 0 * * *")
     public void checkOverduePayments() {
         log.info("Checking for overdue payments...");

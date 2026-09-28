@@ -23,6 +23,7 @@ public class ConvocationResponse {
     private Long joueurId;
     private String joueurPrenom;
     private String joueurNom;
+    private String categorieNom;
     private Long parentId;
     private String parentPrenom;
     private String parentNom;

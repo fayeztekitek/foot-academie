@@ -54,4 +54,7 @@ public interface PaiementRepository extends JpaRepository<Paiement, Long> {
 
     @Query("SELECT DISTINCT p.parent.id FROM Paiement p WHERE p.statut IN ('EN_ATTENTE', 'EN_RETARD') AND p.dateEcheance < :cutoff")
     List<Long> findParentIdsWithUnpaidOlderThan(@Param("cutoff") LocalDate cutoff);
+
+    @Query("SELECT p FROM Paiement p LEFT JOIN FETCH p.joueur LEFT JOIN FETCH p.parent WHERE p.statut IN ('EN_ATTENTE', 'EN_RETARD') ORDER BY p.dateEcheance")
+    List<Paiement> findPendingWithDetails();
 }
