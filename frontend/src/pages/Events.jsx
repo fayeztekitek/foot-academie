@@ -29,6 +29,7 @@ const TYPE_COLORS = {
   ENTRAINEMENT_SPECIAL: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' },
   STAGE: { bg: '#fce4ec', color: '#c62828', border: '#ef9a9a' },
   AUTRE: { bg: '#f3e5f5', color: '#6a1b9a', border: '#ce93d8' },
+  AUTRE: { bg: '#f3e5f5', color: '#6a1b9a', border: '#ce93d8' },
 };
 
 const STATUT_LABELS = {
@@ -102,7 +103,7 @@ export default function Events() {
 
   const [newEvent, setNewEvent] = useState({
     titre: '',
-    type: 'MATCH',
+    typeEvenement: 'MATCH',
     dateDebut: '',
     dateFin: '',
     heureDebut: '',
@@ -166,7 +167,7 @@ export default function Events() {
   function resetForm() {
     setNewEvent({
       titre: '',
-      type: 'MATCH',
+      typeEvenement: 'MATCH',
       dateDebut: '',
       dateFin: '',
       heureDebut: '',
@@ -236,15 +237,15 @@ export default function Events() {
 
   function handleSubmit(e) {
     e.preventDefault();
+    // Payload aligned with EvenementRequest: typeEvenement (not `type`),
+    // ISO dates (not datetimes), hours as separate fields.
     const payload = {
       titre: newEvent.titre,
-      type: newEvent.type,
-      dateDebut: newEvent.dateDebut
-        ? `${newEvent.dateDebut}T${newEvent.heureDebut || '00:00'}:00`
-        : null,
-      dateFin: newEvent.dateFin
-        ? `${newEvent.dateFin}T${newEvent.heureFin || '23:59'}:00`
-        : null,
+      typeEvenement: newEvent.typeEvenement,
+      dateDebut: newEvent.dateDebut || null,
+      dateFin: newEvent.dateFin || newEvent.dateDebut || null,
+      heureDebut: newEvent.heureDebut || null,
+      heureFin: newEvent.heureFin || null,
       lieu: newEvent.lieu,
       terrain: newEvent.terrain,
       description: newEvent.description,
@@ -323,13 +324,13 @@ export default function Events() {
                     <span
                       className="pill"
                       style={{
-                        backgroundColor: TYPE_COLORS[conv.evenement?.type]?.bg,
-                        color: TYPE_COLORS[conv.evenement?.type]?.color,
-                        border: `1px solid ${TYPE_COLORS[conv.evenement?.type]?.border}`,
+                        backgroundColor: TYPE_COLORS[conv.evenementType]?.bg,
+                        color: TYPE_COLORS[conv.evenementType]?.color,
+                        border: `1px solid ${TYPE_COLORS[conv.evenementType]?.border}`,
                         fontSize: '0.75rem',
                       }}
                     >
-                      {TYPE_LABELS[conv.evenement?.type] || conv.evenement?.type}
+                      {TYPE_LABELS[conv.evenementType] || conv.evenementType}
                     </span>
                   </div>
                 </div>
@@ -464,7 +465,7 @@ export default function Events() {
                 const q = eventSearch.toLowerCase();
                 if (!(ev.titre || '').toLowerCase().includes(q) && !(ev.lieu || '').toLowerCase().includes(q)) return false;
               }
-              if (typeFilter && ev.type !== typeFilter) return false;
+              if (typeFilter && ev.typeEvenement !== typeFilter) return false;
               return true;
             });
             const isToday =
@@ -513,9 +514,9 @@ export default function Events() {
                       padding: '1px 4px',
                       borderRadius: 3,
                       marginBottom: 2,
-                      backgroundColor: TYPE_COLORS[ev.type]?.bg || '#eee',
-                      color: TYPE_COLORS[ev.type]?.color || '#333',
-                      border: `1px solid ${TYPE_COLORS[ev.type]?.border || '#ccc'}`,
+                      backgroundColor: TYPE_COLORS[ev.typeEvenement]?.bg || '#eee',
+                      color: TYPE_COLORS[ev.typeEvenement]?.color || '#333',
+                      border: `1px solid ${TYPE_COLORS[ev.typeEvenement]?.border || '#ccc'}`,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -562,8 +563,8 @@ export default function Events() {
                   style={{
                     padding: '1rem',
                     borderRadius: 8,
-                    border: `1px solid ${TYPE_COLORS[ev.type]?.border || '#ccc'}`,
-                    backgroundColor: TYPE_COLORS[ev.type]?.bg || '#f9f9f9',
+                    border: `1px solid ${TYPE_COLORS[ev.typeEvenement]?.border || '#ccc'}`,
+                    backgroundColor: TYPE_COLORS[ev.typeEvenement]?.bg || '#f9f9f9',
                     cursor: 'pointer',
                     transition: 'box-shadow 0.15s ease',
                   }}
@@ -572,7 +573,7 @@ export default function Events() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <div style={{ fontWeight: 600, color: TYPE_COLORS[ev.type]?.color || '#333', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 600, color: TYPE_COLORS[ev.typeEvenement]?.color || '#333', marginBottom: 4 }}>
                         {ev.titre}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--ink-soft)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -595,14 +596,14 @@ export default function Events() {
                     <span
                       className="pill"
                       style={{
-                        backgroundColor: TYPE_COLORS[ev.type]?.bg,
-                        color: TYPE_COLORS[ev.type]?.color,
-                        border: `1px solid ${TYPE_COLORS[ev.type]?.border}`,
+                        backgroundColor: TYPE_COLORS[ev.typeEvenement]?.bg,
+                        color: TYPE_COLORS[ev.typeEvenement]?.color,
+                        border: `1px solid ${TYPE_COLORS[ev.typeEvenement]?.border}`,
                         fontSize: '0.7rem',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {TYPE_LABELS[ev.type] || ev.type}
+                      {TYPE_LABELS[ev.typeEvenement] || ev.typeEvenement}
                     </span>
                   </div>
                 </div>
@@ -661,8 +662,8 @@ export default function Events() {
                   <label className="label">Type</label>
                   <select
                     className="input-field"
-                    value={newEvent.type}
-                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })}
+                    value={newEvent.typeEvenement}
+                    onChange={(e) => setNewEvent({ ...newEvent, typeEvenement: e.target.value })}
                   >
                     {Object.entries(TYPE_LABELS).map(([key, label]) => (
                       <option key={key} value={key}>{label}</option>
@@ -890,13 +891,13 @@ export default function Events() {
                 <span
                   className="pill"
                   style={{
-                    backgroundColor: TYPE_COLORS[selectedEvent.type]?.bg,
-                    color: TYPE_COLORS[selectedEvent.type]?.color,
-                    border: `1px solid ${TYPE_COLORS[selectedEvent.type]?.border}`,
+                    backgroundColor: TYPE_COLORS[selectedEvent.typeEvenement]?.bg,
+                    color: TYPE_COLORS[selectedEvent.typeEvenement]?.color,
+                    border: `1px solid ${TYPE_COLORS[selectedEvent.typeEvenement]?.border}`,
                     fontSize: '0.75rem',
                   }}
                 >
-                  {TYPE_LABELS[selectedEvent.type] || selectedEvent.type}
+                  {TYPE_LABELS[selectedEvent.typeEvenement] || selectedEvent.typeEvenement}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
