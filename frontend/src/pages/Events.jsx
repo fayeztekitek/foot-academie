@@ -157,10 +157,18 @@ export default function Events() {
     },
   });
 
+  const { data: myConvocationsData, isLoading: myConvocationsLoading } = useQuery({
+    queryKey: ['my-convocations'],
+    queryFn: () => eventsApi.getMyConvocations().then(r => r.data || []),
+    enabled: user?.role === 'PARENT',
+  });
+
   const respondMutation = useMutation({
-    mutationFn: ({ convocationId, statut }) => eventsApi.respondConvocation(convocationId, statut),
+    // Backend contract: POST .../respond { accept: boolean }.
+    mutationFn: ({ convocationId, statut }) => eventsApi.respond(convocationId, statut === 'CONFIRME'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['my-convocations'] });
     },
   });
 
@@ -273,18 +281,10 @@ export default function Events() {
     : [];
 
   if (!isAdmin) {
-    const myConvocations = [];
-    if (events) {
-      events.forEach((ev) => {
-        if (ev.convocations) {
-          ev.convocations.forEach((c) => {
-            if (c.joueurId === user?.joueurId || c.utilisateurId === user?.id) {
-              myConvocations.push({ ...c, evenement: ev });
-            }
-          });
-        }
-      });
-    }
+    // Convocations come from the dedicated, server-scoped endpoint — never
+    // derived client-side (EvenementResponse carries no convocation list,
+    // and only the backend knows which family the caller belongs to).
+    const myConvocations = Array.isArray(myConvocationsData) ? myConvocationsData : [];
 
     return (
       <div style={{ padding: '2rem', maxWidth: 900, margin: '0 auto' }}>
@@ -294,7 +294,11 @@ export default function Events() {
         >
           Mes convocations
         </h1>
-        {myConvocations.length === 0 ? (
+        {myConvocationsLoading ? (
+          <div className="panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ink-soft)' }}>
+            Chargement des convocations…
+          </div>
+        ) : myConvocations.length === 0 ? (
           <div className="panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ink-soft)' }}>
             Aucune convocation pour le moment.
           </div>
@@ -308,16 +312,21 @@ export default function Events() {
               >
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontWeight: 600, color: 'var(--pitch-dark)', marginBottom: 4 }}>
-                    {conv.evenement?.titre}
+                    {conv.evenementTitre}
+                    {(conv.joueurPrenom || conv.joueurNom) && (
+                      <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>
+                        {' '}— {conv.joueurPrenom} {conv.joueurNom}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Calendar size={14} />
-                      {formatDate(conv.evenement?.dateDebut)}
+                      {formatDate(conv.evenementDateDebut)}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <MapPin size={14} />
-                      {conv.evenement?.lieu}
+                      {conv.evenementLieu}
                     </span>
                   </div>
                   <div style={{ marginTop: 6 }}>
