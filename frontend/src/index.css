@@ -342,3 +342,16 @@ h1, h2, h3, .num, .logo-word {
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* Print: statement only — hide app chrome */
+@media print {
+  aside,
+  nav,
+  .bottom-nav,
+  .toast {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}

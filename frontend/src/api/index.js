@@ -15,3 +15,4 @@ export { authApi } from './auth';
 export { presencesApi } from './presences';
 export { eventsApi } from './events';
 export { notesApi } from './notes';
+export { calendarApi } from './calendar';

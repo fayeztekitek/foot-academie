@@ -22,6 +22,7 @@ public class AbsenceResponse {
     private String categorieNom;
     private LocalDate dateSeance;
     private Boolean present;
+    private String motif;
     private String marqueParEmail;
     private LocalDateTime createdAt;
 }

@@ -64,18 +64,70 @@ export default function ParentPayments() {
 
   if (isLoading) return <div className="flex items-center justify-center h-64">Chargement...</div>;
 
+  const byChild = {};
+  payments.forEach(p => {
+    const key = p.joueurId || `${p.joueurPrenom} ${p.joueurNom}`;
+    if (!byChild[key]) byChild[key] = { name: `${p.joueurPrenom} ${p.joueurNom}`, rows: [] };
+    byChild[key].rows.push(p);
+  });
+  const todayStr = new Date().toLocaleDateString('fr-FR');
+
   return (
     <div className="max-w-3xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="font-bebas text-2xl" style={{ color: 'var(--pitch-dark)' }}>Mes paiements</h2>
-        <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>
-          Consultez l'état de vos cotisations et mettez à jour vos moyens de paiement.
+      <div className="mb-6 print:hidden">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-bebas text-2xl" style={{ color: 'var(--pitch-dark)' }}>Mes paiements</h2>
+            <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>
+              Consultez l'état de vos cotisations et mettez à jour vos moyens de paiement.
+            </p>
+          </div>
+          <button onClick={() => window.print()} className="btn-ghost btn-sm text-sm">
+            Imprimer le relevé
+          </button>
+        </div>
+      </div>
+
+      {/* Printable statement (print only) */}
+      <div className="hidden print:block text-black">
+        <h2 style={{ fontSize: 20, marginBottom: 4 }}>Relevé de compte — Nadi Académie</h2>
+        <p style={{ fontSize: 12, marginBottom: 12 }}>Édité le {todayStr}</p>
+        {Object.values(byChild).map(child => {
+          const paid = child.rows.filter(r => r.statut === 'PAYE').reduce((s, r) => s + (r.montant || 0), 0);
+          const due = child.rows.filter(r => r.statut !== 'PAYE' && r.statut !== 'ANNULE').reduce((s, r) => s + (r.montant || 0), 0);
+          return (
+            <div key={child.name} style={{ marginBottom: 16 }}>
+              <h3 style={{ fontSize: 15, marginBottom: 6 }}>{child.name} — Payé : {paid.toLocaleString('fr-TN')} DT · Dû : {due.toLocaleString('fr-TN')} DT</h3>
+              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Échéance', 'Montant', 'Statut', 'Payé le'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', borderBottom: '1px solid #999', padding: '4px 6px' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {child.rows.map(r => (
+                    <tr key={r.id}>
+                      <td style={{ padding: '4px 6px' }}>{r.dateEcheance || '—'}</td>
+                      <td style={{ padding: '4px 6px' }}>{(r.montant || 0).toLocaleString('fr-TN')} DT</td>
+                      <td style={{ padding: '4px 6px' }}>{STATUT_LABELS[r.statut] || r.statut}</td>
+                      <td style={{ padding: '4px 6px' }}>{r.datePaiement || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+        <p style={{ fontSize: 13, fontWeight: 'bold' }}>
+          Total payé : {totalPaid.toLocaleString('fr-TN')} DT · Total dû : {totalDue.toLocaleString('fr-TN')} DT
         </p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 print:hidden">
         <div className="panel p-5">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard size={16} style={{ color: 'var(--pitch)' }} />
@@ -106,7 +158,7 @@ export default function ParentPayments() {
       </div>
 
       {/* Payments list */}
-      <div className="panel">
+      <div className="panel print:hidden">
         <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--line)' }}>
           <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>Historique des paiements</h3>
         </div>

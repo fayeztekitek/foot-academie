@@ -12,4 +12,7 @@ export const notesApi = {
   getStats: (joueurId) => api.get(`/notes/joueur/${joueurId}/stats`),
 
   getJoueursDuMois: (mois, annee) => api.get(`/notes/joueur-du-mois?mois=${mois}&annee=${annee}`),
+
+  getTop10: (categorieId, mois, annee) =>
+    api.get(`/notes/top10?categorieId=${categorieId}&mois=${mois}&annee=${annee}`),
 };

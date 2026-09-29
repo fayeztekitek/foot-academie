@@ -53,6 +53,12 @@ public class Utilisateur {
     @Column(name = "token_version")
     private Long tokenVersion = 0L;
 
+    // Nullable on purpose (ddl-auto:update cannot add NOT NULL columns).
+    // Opaque per-user secret for the read-only calendar subscription feed.
+    // Revoked by regenerating; never exposed except to its owner.
+    @Column(name = "calendar_token")
+    private String calendarToken;
+
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 

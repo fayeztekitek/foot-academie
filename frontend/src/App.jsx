@@ -11,6 +11,7 @@ import PlayerDetail from './pages/PlayerDetail';
 import Parents from './pages/Parents';
 import Payments from './pages/Payments';
 import ParentPayments from './pages/ParentPayments';
+import Absences from './pages/Absences';
 import Training from './pages/Training';
 import Coaches from './pages/Coaches';
 import Categories from './pages/Categories';
@@ -88,6 +89,7 @@ function AppRoutes() {
         <Route path="parents" element={<Parents />} />
         <Route path="payments" element={<Payments />} />
         <Route path="my-payments" element={<ParentPayments />} />
+        <Route path="absences" element={<RoleRoute roles={['PARENT']}><Absences /></RoleRoute>} />
         <Route path="training" element={<Training />} />
         <Route path="coaches" element={<Coaches />} />
         <Route path="categories" element={<Categories />} />

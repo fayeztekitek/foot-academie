@@ -28,6 +28,7 @@ public class NoteJoueurService {
     private final CreneauRepository creneauRepository;
     private final EntraineurRepository entraineurRepository;
     private final FamilyAccessGuard familyAccessGuard;
+    private final AttendanceService attendanceService;
 
     @Transactional(readOnly = true)
     public Page<NoteJoueurResponse> getByJoueur(Long joueurId, Pageable pageable) {
@@ -108,6 +109,48 @@ public class NoteJoueurService {
             }
         }
         return result;
+    }
+
+    /**
+     * Top 10 players of a category for a given month.
+     * Score (0-100) = 70% average note (out of 10) + 30% current-month
+     * attendance rate. Players without notes that month are excluded.
+     */
+    @Transactional(readOnly = true)
+    public List<com.nadi.dto.TopJoueurResponse> getTop10ByCategorie(Long categorieId, int mois, int annee) {
+        List<Object[]> rows = noteJoueurRepository.findBestJoueurByCategorieAndMonth(categorieId, mois, annee);
+        List<com.nadi.dto.TopJoueurResponse> ranked = new java.util.ArrayList<>();
+        for (Object[] row : rows) {
+            Long joueurId = (Long) row[0];
+            BigDecimal avg = (BigDecimal) row[1];
+            if (avg == null) {
+                continue;
+            }
+            Joueur joueur = joueurRepository.findById(joueurId).orElse(null);
+            if (joueur == null) {
+                continue;
+            }
+            double attendance = 0.0;
+            try {
+                attendance = attendanceService.getStatsByJoueur(joueurId).getMois().getAttendanceRate();
+            } catch (Exception ignored) {
+                // No attendance data: rank on notes alone.
+            }
+            double score = Math.round((avg.doubleValue() / 10 * 70 + attendance * 0.3) * 100.0) / 100.0;
+            ranked.add(com.nadi.dto.TopJoueurResponse.builder()
+                    .joueurId(joueur.getId())
+                    .prenom(joueur.getPrenom())
+                    .nom(joueur.getNom())
+                    .categorieNom(joueur.getCategorie() != null ? joueur.getCategorie().getNom() : null)
+                    .moyenneNote(avg)
+                    .tauxPresence(attendance)
+                    .score(score)
+                    .build());
+        }
+        return ranked.stream()
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .limit(10)
+                .toList();
     }
 
     private NoteJoueurResponse toResponse(NoteJoueur n) {

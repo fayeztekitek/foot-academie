@@ -21,6 +21,9 @@ public interface AbsenceRepository extends JpaRepository<Absence, Long> {
 
     List<Absence> findByJoueurId(Long joueurId);
 
+    @Query("SELECT a FROM Absence a LEFT JOIN FETCH a.joueur LEFT JOIN FETCH a.creneau WHERE a.joueur.parent.id = :parentId AND a.dateSeance >= :from ORDER BY a.dateSeance")
+    List<Absence> findUpcomingByParent(@Param("parentId") Long parentId, @Param("from") LocalDate from);
+
     @Modifying
     @Transactional
     void deleteByCreneauId(Long creneauId);

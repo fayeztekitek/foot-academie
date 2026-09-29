@@ -45,6 +45,8 @@ class NoteJoueurServiceTest {
     private ParentRepository parentRepository;
     @Mock
     private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private AttendanceService attendanceService;
 
     private NoteJoueurService noteJoueurService;
 
@@ -53,7 +55,8 @@ class NoteJoueurServiceTest {
         FamilyAccessGuard guard = new FamilyAccessGuard(
                 parentRepository, new SecurityUtils(utilisateurRepository));
         noteJoueurService = new NoteJoueurService(
-                noteJoueurRepository, joueurRepository, creneauRepository, entraineurRepository, guard);
+                noteJoueurRepository, joueurRepository, creneauRepository, entraineurRepository, guard,
+                attendanceService);
     }
 
     @AfterEach
@@ -164,6 +167,59 @@ class NoteJoueurServiceTest {
         request.setEntraineurId(1L);
 
         assertThrows(RuntimeException.class, () -> noteJoueurService.create(request));
+    }
+
+    private com.nadi.dto.PresenceStatsByJoueurResponse statsWithRate(double rate) {
+        return com.nadi.dto.PresenceStatsByJoueurResponse.builder()
+                .mois(com.nadi.dto.PresenceStatsResponse.builder().attendanceRate(rate).build())
+                .build();
+    }
+
+    private Joueur rankedPlayer(Long id) {
+        Joueur joueur = Joueur.builder().prenom("J" + id).nom("N")
+                .dateNaissance(LocalDate.of(2015, 1, 1)).build();
+        joueur.setId(id);
+        return joueur;
+    }
+
+    @Test
+    void top10MixesNotesAndAttendance() {
+        when(noteJoueurRepository.findBestJoueurByCategorieAndMonth(eq(4L), eq(9), eq(2026)))
+                .thenReturn(List.of(
+                        new Object[]{1L, BigDecimal.valueOf(8.5)},
+                        new Object[]{2L, BigDecimal.valueOf(9.0)},
+                        new Object[]{3L, BigDecimal.valueOf(7.0)}));
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(rankedPlayer(1L)));
+        when(joueurRepository.findById(2L)).thenReturn(Optional.of(rankedPlayer(2L)));
+        when(joueurRepository.findById(3L)).thenReturn(Optional.of(rankedPlayer(3L)));
+        when(attendanceService.getStatsByJoueur(1L)).thenReturn(statsWithRate(100.0));
+        when(attendanceService.getStatsByJoueur(2L)).thenReturn(statsWithRate(50.0));
+        when(attendanceService.getStatsByJoueur(3L)).thenReturn(statsWithRate(100.0));
+
+        List<com.nadi.dto.TopJoueurResponse> top =
+                noteJoueurService.getTop10ByCategorie(4L, 9, 2026);
+
+        // p1: 59.5+30=89.5, p3: 49+30=79, p2: 63+15=78 — attendance flips p3 over p2
+        assertEquals(List.of(1L, 3L, 2L), top.stream().map(com.nadi.dto.TopJoueurResponse::getJoueurId).toList());
+        assertEquals(89.5, top.get(0).getScore());
+    }
+
+    @Test
+    void top10IsLimitedToTen() {
+        java.util.List<Object[]> rows = new java.util.ArrayList<>();
+        for (long i = 1; i <= 12; i++) {
+            rows.add(new Object[]{i, BigDecimal.valueOf(5 + i * 0.1)});
+        }
+        when(noteJoueurRepository.findBestJoueurByCategorieAndMonth(eq(4L), eq(9), eq(2026)))
+                .thenReturn(rows);
+        when(joueurRepository.findById(any()))
+                .thenAnswer(i -> Optional.of(rankedPlayer((Long) i.getArgument(0))));
+        when(attendanceService.getStatsByJoueur(any())).thenReturn(statsWithRate(100.0));
+
+        List<com.nadi.dto.TopJoueurResponse> top =
+                noteJoueurService.getTop10ByCategorie(4L, 9, 2026);
+
+        assertEquals(10, top.size());
     }
 
     @Test

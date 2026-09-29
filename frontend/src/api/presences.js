@@ -6,6 +6,10 @@ export const presencesApi = {
 
   save: (data) => api.post('/presences', data),
 
+  declare: (data) => api.post('/presences/declarer', data),
+
+  getMyAbsences: () => api.get('/presences/mes-absences'),
+
   getGlobalStats: () => api.get('/attendance/global'),
 
   getAllJoueurStats: () => api.get('/attendance/all'),

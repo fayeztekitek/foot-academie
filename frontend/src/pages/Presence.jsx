@@ -171,10 +171,18 @@ export default function Presence() {
                 </tr>
               </thead>
               <tbody>
-                {playerList.map(p => (
+                {playerList.map(p => {
+                  const declared = (existingPresences || []).find(e => e.joueurId === p.id);
+                  const excused = declared && !declared.present && declared.motif;
+                  return (
                   <tr key={p.id} className="border-b last:border-b-0" style={{ borderColor: '#F0EEE4' }}>
                     <td className="py-3 px-5">
                       <div className="font-semibold">{p.prenom} {p.nom}</div>
+                      {excused && (
+                        <div className="text-[11px] mt-0.5 px-2 py-0.5 rounded-full inline-block" style={{ background: 'var(--gold-light)', color: '#92710C' }}>
+                          Excusé : {declared.motif}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-5" style={{ color: 'var(--ink-soft)' }}>
                       {p.dateNaissance ? p.dateNaissance.split('-')[0] : '—'}
@@ -195,7 +203,8 @@ export default function Presence() {
                       {marks[p.id] ? 'Présent' : 'Absent'}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

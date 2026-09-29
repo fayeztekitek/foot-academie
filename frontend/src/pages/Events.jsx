@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsApi, playersApi, categoriesApi } from '../api';
+import CalendarSubscription from '../components/CalendarSubscription';
 import { useAuth } from '../hooks/useAuth';
 import {
   Plus,
@@ -437,6 +438,9 @@ export default function Events() {
             ))}
           </div>
         )}
+        <div className="mt-6">
+          <CalendarSubscription />
+        </div>
       </div>
     );
   }

@@ -6,7 +6,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import NotificationBell from './NotificationBell';
 import ChatWidget from './ai/ChatWidget';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { LayoutDashboard, Users, UserCog, CreditCard, Calendar, GraduationCap, FolderOpen, Upload, Menu, X, LogOut, Smartphone, ClipboardCheck, Trophy, Building2, BarChart3, Mail, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, UserCog, CreditCard, Calendar, CalendarX, GraduationCap, FolderOpen, Upload, Menu, X, LogOut, Smartphone, ClipboardCheck, Trophy, Building2, BarChart3, Mail, Shield } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['ADMIN', 'COACH', 'PARENT'] },
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/parents', label: 'Parents', icon: UserCog, roles: ['ADMIN'] },
   { to: '/payments', label: 'Paiements', icon: CreditCard, roles: ['ADMIN'] },
   { to: '/my-payments', label: 'Mes paiements', icon: CreditCard, roles: ['PARENT'] },
+  { to: '/absences', label: 'Absences', icon: CalendarX, roles: ['PARENT'] },
   { to: '/training', label: 'Entraînements', icon: Calendar, roles: ['ADMIN', 'COACH', 'PARENT'] },
   { to: '/coaches', label: 'Entraîneurs', icon: GraduationCap, roles: ['ADMIN'] },
   { to: '/presence', label: 'Présence', icon: ClipboardCheck, roles: ['ADMIN', 'COACH'] },

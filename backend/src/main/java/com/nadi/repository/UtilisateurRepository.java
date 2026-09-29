@@ -17,6 +17,8 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 
     boolean existsByEmail(String email);
 
+    Optional<Utilisateur> findByCalendarToken(String calendarToken);
+
     @Modifying
     @Transactional
     @Query(value = "UPDATE utilisateur SET mot_de_passe_hash = :hash, must_change_password = true, token_version = COALESCE(token_version, 0) + 1 WHERE email = :email", nativeQuery = true)

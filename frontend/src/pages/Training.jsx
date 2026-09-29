@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { slotsApi } from '../api';
+import CalendarSubscription from '../components/CalendarSubscription';
 import { Search, X } from 'lucide-react';
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -132,7 +133,7 @@ export default function Training() {
                 return (
                   <div key={di} className="bg-white min-h-[52px] relative p-[3px]">
                     {cellSlots.map((slot, si) => {
-                      const colors = getCatColor(slot.categorie?.nom);
+                      const colors = getCatColor(slot.categorieNom);
                       return (
                         <div
                           key={si}
@@ -154,6 +155,10 @@ export default function Training() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-6 max-w-2xl">
+        <CalendarSubscription />
       </div>
 
       {/* Legend */}

@@ -30,11 +30,32 @@ public class AbsenceController {
         return ResponseEntity.ok(absenceService.getByCreneauAndDate(creneauId, LocalDate.parse(date)));
     }
 
+    @GetMapping("/mes-absences")
+    @PreAuthorize("hasRole('PARENT')")
+    public ResponseEntity<List<AbsenceResponse>> getMyUpcomingAbsences() {
+        Long userId = securityUtils.getCurrentUserId();
+        Long parentId = absenceService.resolveOwnParentId(userId);
+        return ResponseEntity.ok(absenceService.getUpcomingByParent(parentId));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','COACH')")
     public ResponseEntity<List<AbsenceResponse>> savePresences(
             @Valid @RequestBody AbsenceRequest request) {
         Utilisateur user = securityUtils.getCurrentUserOrThrow();
         return ResponseEntity.ok(absenceService.savePresences(request, user));
+    }
+
+    @PostMapping("/declarer")
+    @PreAuthorize("hasRole('PARENT')")
+    public ResponseEntity<AbsenceResponse> declareAbsence(@RequestBody java.util.Map<String, Object> body) {
+        if (body.get("joueurId") == null || body.get("creneauId") == null || body.get("dateSeance") == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Long joueurId = Long.valueOf(body.get("joueurId").toString());
+        Long creneauId = Long.valueOf(body.get("creneauId").toString());
+        LocalDate dateSeance = LocalDate.parse(body.get("dateSeance").toString());
+        String motif = body.get("motif") != null ? body.get("motif").toString() : null;
+        return ResponseEntity.ok(absenceService.declareAbsence(joueurId, creneauId, dateSeance, motif));
     }
 }

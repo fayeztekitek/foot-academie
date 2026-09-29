@@ -42,6 +42,10 @@ public class Absence {
     @Builder.Default
     private Boolean present = false;
 
+    // Nullable on purpose (ddl-auto:update cannot add NOT NULL columns).
+    // Motif given by the parent when declaring the absence in advance.
+    private String motif;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "marque_par_id")
     private Utilisateur marquePar;

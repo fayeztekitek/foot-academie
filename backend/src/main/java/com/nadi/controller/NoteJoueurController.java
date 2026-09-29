@@ -49,4 +49,16 @@ public class NoteJoueurController {
             @RequestParam int annee) {
         return ResponseEntity.ok(noteJoueurService.getJoueursDuMois(mois, annee));
     }
+
+    @GetMapping("/top10")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<com.nadi.dto.TopJoueurResponse>> getTop10(
+            @RequestParam Long categorieId,
+            @RequestParam(required = false) Integer mois,
+            @RequestParam(required = false) Integer annee) {
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int m = mois != null ? mois : now.getMonthValue();
+        int a = annee != null ? annee : now.getYear();
+        return ResponseEntity.ok(noteJoueurService.getTop10ByCategorie(categorieId, m, a));
+    }
 }

@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, statsApi, slotsApi, presencesApi, notesApi } from '../api';
+import { dashboardApi, statsApi, slotsApi, presencesApi, notesApi, categoriesApi } from '../api';
 import BarChart from '../components/BarChart';
 import { useAuth } from '../hooks/useAuth';
 import { Calendar, BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, Users, CreditCard, Trophy } from 'lucide-react';
@@ -73,6 +74,20 @@ export default function Dashboard() {
     queryKey: ['joueurs-du-mois', now.getMonth() + 1, now.getFullYear()],
     queryFn: () => notesApi.getJoueursDuMois(now.getMonth() + 1, now.getFullYear()).then(r => r.data),
     enabled: user?.role === 'ADMIN',
+  });
+
+  const { data: allCategories } = useQuery({
+    queryKey: ['categories-all'],
+    queryFn: () => categoriesApi.getAll({ size: 50 }).then(r => r.data?.content || r.data || []),
+    enabled: user?.role === 'ADMIN',
+  });
+  const categories = Array.isArray(allCategories) ? allCategories : [];
+  const [topCatId, setTopCatId] = useState(null);
+  const activeTopCatId = topCatId || categories[0]?.id || null;
+  const { data: top10 } = useQuery({
+    queryKey: ['top10', activeTopCatId, now.getMonth() + 1, now.getFullYear()],
+    queryFn: () => notesApi.getTop10(activeTopCatId, now.getMonth() + 1, now.getFullYear()).then(r => r.data),
+    enabled: user?.role === 'ADMIN' && !!activeTopCatId,
   });
 
   const { data: childrenStats } = useQuery({
@@ -247,6 +262,51 @@ export default function Dashboard() {
                   </div>
                   <div className="text-sm font-bold" style={{ color: 'var(--gold)' }}>
                     {j.noteMoyenne?.toFixed(1) || '—'}/10
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top 10 par catégorie — score = 70% note + 30% assiduité du mois */}
+        {user?.role === 'ADMIN' && (
+          <div className="panel rounded-xl border border-line shadow-card">
+            <div className="flex justify-between items-center gap-3 px-5 py-4 border-b flex-wrap" style={{ borderColor: 'var(--line)' }}>
+              <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>
+                <Trophy size={16} className="inline mr-1.5" style={{ color: 'var(--gold)' }} />
+                Top 10 par catégorie
+              </h3>
+              <select
+                value={activeTopCatId || ''}
+                onChange={e => setTopCatId(Number(e.target.value))}
+                className="input-field text-xs py-1.5 px-3"
+                style={{ maxWidth: 180 }}
+              >
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.nom}</option>
+                ))}
+              </select>
+            </div>
+            <div className="py-1">
+              {!top10 || top10.length === 0 ? (
+                <div className="py-6 text-center text-sm" style={{ color: 'var(--ink-soft)' }}>
+                  Aucune note ce mois-ci dans cette catégorie.
+                </div>
+              ) : top10.map((j, i) => (
+                <div key={j.joueurId} className="flex items-center gap-3 px-5 py-2.5 border-b last:border-b-0" style={{ borderColor: '#F0EEE4' }}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ background: i < 3 ? 'var(--gold-light)' : '#F0EEE4', color: i < 3 ? 'var(--gold)' : 'var(--ink-soft)' }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold">{j.prenom} {j.nom}</div>
+                    <div className="text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                      Note {Number(j.moyenneNote || 0).toFixed(1)}/10 · Présence {(j.tauxPresence || 0).toFixed(0)}%
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold" style={{ color: 'var(--pitch-dark)' }}>
+                    {Number(j.score || 0).toFixed(1)}
                   </div>
                 </div>
               ))}
