@@ -273,10 +273,19 @@ export default function Dashboard() {
         {user?.role === 'ADMIN' && (
           <div className="panel rounded-xl border border-line shadow-card">
             <div className="flex justify-between items-center gap-3 px-5 py-4 border-b flex-wrap" style={{ borderColor: 'var(--line)' }}>
-              <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>
-                <Trophy size={16} className="inline mr-1.5" style={{ color: 'var(--gold)' }} />
-                Top 10 par catégorie
-              </h3>
+              <div>
+                <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>
+                  <Trophy size={16} className="inline mr-1.5" style={{ color: 'var(--gold)' }} />
+                  Top 10 par catégorie
+                </h3>
+                {top10 && top10.length > 0 && (
+                  <div className="text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                    {top10[0].periode === 'all'
+                      ? 'Toutes périodes (aucune note ce mois-ci)'
+                      : 'Notes du mois en cours'}
+                  </div>
+                )}
+              </div>
               <select
                 value={activeTopCatId || ''}
                 onChange={e => setTopCatId(Number(e.target.value))}

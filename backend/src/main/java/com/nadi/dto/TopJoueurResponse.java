@@ -20,4 +20,5 @@ public class TopJoueurResponse {
     private BigDecimal moyenneNote;
     private Double tauxPresence;
     private Double score;
+    private String periode;
 }

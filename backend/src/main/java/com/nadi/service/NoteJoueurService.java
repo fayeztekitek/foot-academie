@@ -112,13 +112,22 @@ public class NoteJoueurService {
     }
 
     /**
-     * Top 10 players of a category for a given month.
-     * Score (0-100) = 70% average note (out of 10) + 30% current-month
-     * attendance rate. Players without notes that month are excluded.
+     * Top 10 players of a category for a given month, falling back to
+     * all-time averages when the month has no notes (otherwise categories
+     * with only older notes would always display empty).
+     * Score (0-100) = 70% average note (out of 10) + 30% attendance rate
+     * (current month, or all-time when falling back). Players without any
+     * notes are excluded.
      */
     @Transactional(readOnly = true)
     public List<com.nadi.dto.TopJoueurResponse> getTop10ByCategorie(Long categorieId, int mois, int annee) {
         List<Object[]> rows = noteJoueurRepository.findBestJoueurByCategorieAndMonth(categorieId, mois, annee);
+        boolean fallback = rows.stream().allMatch(row -> row[1] == null);
+        if (fallback) {
+            rows = noteJoueurRepository.findBestJoueurByCategorieAllTime(categorieId);
+        }
+        String periode = fallback ? "all"
+                : String.format("%04d-%02d", annee, mois);
         List<com.nadi.dto.TopJoueurResponse> ranked = new java.util.ArrayList<>();
         for (Object[] row : rows) {
             Long joueurId = (Long) row[0];
@@ -132,7 +141,10 @@ public class NoteJoueurService {
             }
             double attendance = 0.0;
             try {
-                attendance = attendanceService.getStatsByJoueur(joueurId).getMois().getAttendanceRate();
+                var stats = attendanceService.getStatsByJoueur(joueurId);
+                attendance = fallback
+                        ? stats.getAllTime().getAttendanceRate()
+                        : stats.getMois().getAttendanceRate();
             } catch (Exception ignored) {
                 // No attendance data: rank on notes alone.
             }
@@ -145,6 +157,7 @@ public class NoteJoueurService {
                     .moyenneNote(avg)
                     .tauxPresence(attendance)
                     .score(score)
+                    .periode(periode)
                     .build());
         }
         return ranked.stream()

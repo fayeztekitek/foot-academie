@@ -205,6 +205,44 @@ class NoteJoueurServiceTest {
     }
 
     @Test
+    void top10FallsBackToAllTimeWhenMonthIsEmpty() {
+        when(noteJoueurRepository.findBestJoueurByCategorieAndMonth(eq(4L), eq(9), eq(2026)))
+                .thenReturn(List.of());
+        when(noteJoueurRepository.findBestJoueurByCategorieAllTime(4L))
+                .thenReturn(List.<Object[]>of(new Object[]{1L, BigDecimal.valueOf(8.0)}));
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(rankedPlayer(1L)));
+        com.nadi.dto.PresenceStatsByJoueurResponse stats =
+                com.nadi.dto.PresenceStatsByJoueurResponse.builder()
+                        .allTime(com.nadi.dto.PresenceStatsResponse.builder().attendanceRate(80.0).build())
+                        .build();
+        when(attendanceService.getStatsByJoueur(1L)).thenReturn(stats);
+
+        List<com.nadi.dto.TopJoueurResponse> top =
+                noteJoueurService.getTop10ByCategorie(4L, 9, 2026);
+
+        assertEquals(1, top.size());
+        assertEquals("all", top.get(0).getPeriode());
+        // 8/10*70 + 80*0.3 = 56 + 24 = 80
+        assertEquals(80.0, top.get(0).getScore());
+        assertEquals(80.0, top.get(0).getTauxPresence());
+    }
+
+    @Test
+    void top10UsesMonthPeriodWhenNotesExist() {
+        when(noteJoueurRepository.findBestJoueurByCategorieAndMonth(eq(4L), eq(9), eq(2026)))
+                .thenReturn(List.<Object[]>of(new Object[]{1L, BigDecimal.valueOf(9.0)}));
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(rankedPlayer(1L)));
+        when(attendanceService.getStatsByJoueur(1L)).thenReturn(statsWithRate(100.0));
+
+        List<com.nadi.dto.TopJoueurResponse> top =
+                noteJoueurService.getTop10ByCategorie(4L, 9, 2026);
+
+        assertEquals(1, top.size());
+        assertEquals("2026-09", top.get(0).getPeriode());
+        verify(noteJoueurRepository, never()).findBestJoueurByCategorieAllTime(any());
+    }
+
+    @Test
     void top10IsLimitedToTen() {
         java.util.List<Object[]> rows = new java.util.ArrayList<>();
         for (long i = 1; i <= 12; i++) {

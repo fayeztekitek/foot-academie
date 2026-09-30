@@ -44,4 +44,7 @@ public interface NoteJoueurRepository extends JpaRepository<NoteJoueur, Long> {
 
     @Query("SELECT n.joueur.id, AVG(n.noteGlobale) as avg FROM NoteJoueur n WHERE n.joueur.categorie.id = :categorieId AND MONTH(n.date) = :mois AND YEAR(n.date) = :annee GROUP BY n.joueur.id ORDER BY avg DESC")
     List<Object[]> findBestJoueurByCategorieAndMonth(@Param("categorieId") Long categorieId, @Param("mois") int mois, @Param("annee") int annee);
+
+    @Query("SELECT n.joueur.id, AVG(n.noteGlobale) as avg FROM NoteJoueur n WHERE n.joueur.categorie.id = :categorieId GROUP BY n.joueur.id ORDER BY avg DESC")
+    List<Object[]> findBestJoueurByCategorieAllTime(@Param("categorieId") Long categorieId);
 }
