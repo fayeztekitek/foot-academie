@@ -28,21 +28,25 @@ public interface AbsenceRepository extends JpaRepository<Absence, Long> {
     @Transactional
     void deleteByCreneauId(Long creneauId);
 
-    @Query("SELECT COUNT(DISTINCT a.dateSeance) FROM Absence a WHERE a.joueur.id = :joueurId AND a.dateSeance BETWEEN :start AND :end")
+    // NOTE: count ROWS, not DISTINCT dates. Each row is one recorded
+    // player-session (unique per joueur/creneau/date). Counting distinct
+    // dates globally made a single present mark turn the whole date
+    // "present", pinning dashboard rates at ~100%.
+    @Query("SELECT COUNT(a) FROM Absence a WHERE a.joueur.id = :joueurId AND a.dateSeance BETWEEN :start AND :end")
     long countSessionsByJoueurAndDateRange(@Param("joueurId") Long joueurId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
-    @Query("SELECT COUNT(DISTINCT a.dateSeance) FROM Absence a WHERE a.joueur.id = :joueurId AND a.present = true AND a.dateSeance BETWEEN :start AND :end")
+    @Query("SELECT COUNT(a) FROM Absence a WHERE a.joueur.id = :joueurId AND a.present = true AND a.dateSeance BETWEEN :start AND :end")
     long countPresentByJoueurAndDateRange(@Param("joueurId") Long joueurId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
-    @Query("SELECT COUNT(DISTINCT a.dateSeance) FROM Absence a WHERE a.joueur.id = :joueurId")
+    @Query("SELECT COUNT(a) FROM Absence a WHERE a.joueur.id = :joueurId")
     long countAllSessionsByJoueur(@Param("joueurId") Long joueurId);
 
-    @Query("SELECT COUNT(DISTINCT a.dateSeance) FROM Absence a WHERE a.joueur.id = :joueurId AND a.present = true")
+    @Query("SELECT COUNT(a) FROM Absence a WHERE a.joueur.id = :joueurId AND a.present = true")
     long countAllPresentByJoueur(@Param("joueurId") Long joueurId);
 
-    @Query("SELECT COUNT(DISTINCT a.dateSeance) FROM Absence a WHERE a.dateSeance BETWEEN :start AND :end")
+    @Query("SELECT COUNT(a) FROM Absence a WHERE a.dateSeance BETWEEN :start AND :end")
     long countAllSessionsByDateRange(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
-    @Query("SELECT COUNT(DISTINCT a.dateSeance) FROM Absence a WHERE a.present = true AND a.dateSeance BETWEEN :start AND :end")
+    @Query("SELECT COUNT(a) FROM Absence a WHERE a.present = true AND a.dateSeance BETWEEN :start AND :end")
     long countAllPresentByDateRange(@Param("start") LocalDate start, @Param("end") LocalDate end);
 }
