@@ -85,4 +85,36 @@ class SchemaRepairMigrationTest {
 
         assertDoesNotThrow(() -> new SchemaRepairMigration(ds).run(null));
     }
+
+    @Test
+    void dropsObsoleteNotNullConstraint() throws Exception {
+        DataSource ds = h2();
+        try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
+            s.execute("CREATE TABLE creneau (id BIGINT PRIMARY KEY, entraineur_id BIGINT NOT NULL)");
+        }
+        assertEquals("NO", nullableFlag(ds));
+
+        new SchemaRepairMigration(ds).run(null);
+
+        assertEquals("YES", nullableFlag(ds));
+    }
+
+    @Test
+    void alreadyNullableColumnIsUntouched() throws Exception {
+        DataSource ds = h2();
+        try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
+            s.execute("CREATE TABLE creneau (id BIGINT PRIMARY KEY, entraineur_id BIGINT)");
+        }
+
+        assertDoesNotThrow(() -> new SchemaRepairMigration(ds).run(null));
+        assertEquals("YES", nullableFlag(ds));
+    }
+
+    private String nullableFlag(DataSource ds) throws Exception {
+        try (Connection c = ds.getConnection();
+             ResultSet rs = c.getMetaData().getColumns(null, null, "CRENEAU", "ENTRAINEUR_ID")) {
+            assertTrue(rs.next(), "column should exist");
+            return rs.getString("IS_NULLABLE");
+        }
+    }
 }

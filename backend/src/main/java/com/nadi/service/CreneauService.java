@@ -116,10 +116,23 @@ public class CreneauService {
             entraineurs.add(entraineur);
             creneau.setEntraineurs(entraineurs);
         }
+        backfillLegacyCoach(creneau, entraineurs);
 
         Creneau saved = creneauRepository.save(creneau);
         notifyCreneauChange(saved, "Nouvel entraînement");
         return toResponse(saved);
+    }
+
+    /**
+     * Legacy compatibility: databases created before multi-coach support have
+     * a NOT NULL entraineur_id column, while current code only fills the
+     * entraineurs set — every insert then failed in PostgreSQL.
+     * (SchemaRepairMigration also drops the obsolete constraint.)
+     */
+    private static void backfillLegacyCoach(Creneau creneau, Set<Entraineur> entraineurs) {
+        if (creneau.getEntraineur() == null && !entraineurs.isEmpty()) {
+            creneau.setEntraineur(entraineurs.iterator().next());
+        }
     }
 
     @Transactional
@@ -153,6 +166,7 @@ public class CreneauService {
             entraineurs.add(entraineur);
         }
         creneau.setEntraineurs(entraineurs);
+        backfillLegacyCoach(creneau, entraineurs);
 
         Creneau saved = creneauRepository.save(creneau);
         notifyCreneauChange(saved, "Horaire d'entraînement modifié");

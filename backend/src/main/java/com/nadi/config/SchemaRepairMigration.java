@@ -40,6 +40,13 @@ public class SchemaRepairMigration implements ApplicationRunner {
             new String[]{"joueur", "postes_secondaires"}
     );
 
+    // Legacy NOT NULL constraints on columns the code now treats as optional.
+    // creneau.entraineur_id dates from single-coach days; the multi-coach
+    // refactor fills the entraineurs set instead, so every insert failed.
+    private static final List<String[]> NULLABLE_COLUMNS = List.<String[]>of(
+            new String[]{"creneau", "entraineur_id"}
+    );
+
     @Override
     public void run(ApplicationArguments args) {
         try (Connection connection = dataSource.getConnection()) {
@@ -48,9 +55,43 @@ public class SchemaRepairMigration implements ApplicationRunner {
             for (String[] tableColumn : TEXT_COLUMNS) {
                 widenIfNeeded(connection, postgres, tableColumn[0], tableColumn[1]);
             }
+            for (String[] tableColumn : NULLABLE_COLUMNS) {
+                dropNotNullIfNeeded(connection, tableColumn[0], tableColumn[1]);
+            }
         } catch (Exception e) {
             log.error("Schema repair check failed, continuing startup", e);
         }
+    }
+
+    private void dropNotNullIfNeeded(Connection connection, String table, String column) {
+        String nullable = nullableFlag(connection, table, column);
+        if (nullable == null) {
+            log.warn("Schema repair: {}.{} not found, skipping", table, column);
+            return;
+        }
+        if ("YES".equalsIgnoreCase(nullable)) {
+            return;
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + table + " ALTER COLUMN " + column + " DROP NOT NULL");
+        } catch (Exception e) {
+            log.warn("Schema repair: could not drop NOT NULL on {}.{}: {}", table, column, e.getMessage());
+            return;
+        }
+        log.info("Schema repair: dropped NOT NULL on {}.{}", table, column);
+    }
+
+    private String nullableFlag(Connection connection, String table, String column) {
+        for (String[] candidate : new String[][]{{table, column}, {table.toUpperCase(), column.toUpperCase()}}) {
+            try (ResultSet rs = connection.getMetaData().getColumns(null, null, candidate[0], candidate[1])) {
+                if (rs.next()) {
+                    return rs.getString("IS_NULLABLE");
+                }
+            } catch (Exception e) {
+                log.warn("Schema repair: metadata lookup failed for {}.{}: {}", table, column, e.getMessage());
+            }
+        }
+        return null;
     }
 
     private void widenIfNeeded(Connection connection, boolean postgres, String table, String column) {
