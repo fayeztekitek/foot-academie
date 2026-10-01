@@ -34,10 +34,12 @@ class CreneauServiceTest {
     private JoueurRepository joueurRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private com.nadi.repository.CreneauExceptionRepository creneauExceptionRepository;
 
     private CreneauService service() {
         return new CreneauService(creneauRepository, categorieRepository, entraineurRepository,
-                absenceRepository, joueurRepository, notificationService);
+                absenceRepository, joueurRepository, notificationService, creneauExceptionRepository);
     }
 
     private Utilisateur user(Long id, Role role) {
@@ -170,6 +172,91 @@ class CreneauServiceTest {
 
         verify(notificationService, atLeastOnce()).create(any(),
                 eq(Notification.TypeNotification.CHANGEMENT_HORAIRE), anyString(), anyString());
+    }
+
+    private Creneau weeklySlot(java.time.LocalDate debut, java.time.LocalDate fin) {
+        Creneau slot = Creneau.builder()
+                .jourSemaine(JourSemaine.LUNDI)
+                .heureDebut(LocalTime.of(16, 0)).heureFin(LocalTime.of(17, 30))
+                .categorie(category()).terrain("Terrain A")
+                .dateDebut(debut).dateFin(fin).build();
+        slot.setId(1L);
+        return slot;
+    }
+
+    private java.time.LocalDate nextMonday() {
+        return java.time.LocalDate.now()
+                .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
+    }
+
+    @Test
+    void expandsWeeklyOccurrencesWithinBounds() {
+        java.time.LocalDate monday = nextMonday();
+        when(creneauRepository.findAll()).thenReturn(List.of(weeklySlot(monday, monday.plusDays(13))));
+        when(creneauExceptionRepository.findByCreneauId(1L)).thenReturn(List.of());
+
+        List<com.nadi.dto.CreneauOccurrenceResponse> occurrences =
+                service().getOccurrences(monday.minusDays(30), monday.plusDays(60));
+
+        // Bounded by the slot's own [dateDebut, dateFin]: exactly 2 Mondays.
+        assertEquals(2, occurrences.size());
+        assertTrue(occurrences.stream().allMatch(o -> "NORMALE".equals(o.getStatut())));
+        assertEquals(monday, occurrences.get(0).getDate());
+    }
+
+    @Test
+    void oneShotSlotYieldsSingleOccurrence() {
+        java.time.LocalDate monday = nextMonday();
+        when(creneauRepository.findAll()).thenReturn(List.of(weeklySlot(monday, monday)));
+        when(creneauExceptionRepository.findByCreneauId(1L)).thenReturn(List.of());
+
+        List<com.nadi.dto.CreneauOccurrenceResponse> occurrences =
+                service().getOccurrences(monday.minusDays(30), monday.plusDays(60));
+
+        assertEquals(1, occurrences.size());
+    }
+
+    @Test
+    void cancelledOccurrenceCarriesMotif() {
+        java.time.LocalDate monday = nextMonday();
+        when(creneauRepository.findAll()).thenReturn(List.of(weeklySlot(monday, monday.plusDays(13))));
+        when(creneauExceptionRepository.findByCreneauId(1L)).thenReturn(List.of(
+                com.nadi.model.CreneauException.builder()
+                        .creneau(weeklySlot(monday, monday.plusDays(13)))
+                        .date(monday)
+                        .statut(com.nadi.model.CreneauException.StatutException.ANNULEE)
+                        .motif("Tournoi inter-académies")
+                        .build()));
+
+        List<com.nadi.dto.CreneauOccurrenceResponse> occurrences =
+                service().getOccurrences(monday, monday.plusDays(13));
+
+        assertEquals(2, occurrences.size());
+        assertEquals("ANNULEE", occurrences.get(0).getStatut());
+        assertEquals("Tournoi inter-académies", occurrences.get(0).getMotif());
+        assertEquals("NORMALE", occurrences.get(1).getStatut());
+    }
+
+    @Test
+    void saveExceptionRequiresMotif() {
+        Creneau slot = weeklySlot(nextMonday(), null);
+        when(creneauRepository.findById(1L)).thenReturn(Optional.of(slot));
+
+        assertThrows(RuntimeException.class, () ->
+                service().saveException(1L, nextMonday(), "ANNULEE", null, null, null, "  "));
+        assertThrows(RuntimeException.class, () ->
+                service().saveException(1L, nextMonday(), "REPORTE", null, null, null, "x"));
+        verify(creneauExceptionRepository, never()).save(any());
+    }
+
+    @Test
+    void createRejectsInvertedDateRange() {
+        CreneauRequest bad = request();
+        bad.setDateDebut(java.time.LocalDate.now().plusDays(10));
+        bad.setDateFin(java.time.LocalDate.now());
+
+        assertThrows(RuntimeException.class, () -> service().create(bad));
+        verify(creneauRepository, never()).save(any());
     }
 
     @Test

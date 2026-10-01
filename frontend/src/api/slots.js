@@ -15,4 +15,11 @@ export const slotsApi = {
   update: (id, data) => api.put(`/slots/${id}`, data),
 
   delete: (id) => api.delete(`/slots/${id}`),
+
+  getOccurrences: (from, to) => api.get(`/slots/occurrences?from=${from}&to=${to}`),
+
+  saveException: (id, data) => api.post(`/slots/${id}/exceptions`, data),
+
+  deleteException: (id, date) =>
+    api.delete(`/slots/${id}/exceptions?date=${encodeURIComponent(date)}`),
 };

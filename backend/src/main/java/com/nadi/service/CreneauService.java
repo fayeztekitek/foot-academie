@@ -1,15 +1,18 @@
 package com.nadi.service;
 
+import com.nadi.dto.CreneauOccurrenceResponse;
 import com.nadi.dto.CreneauRequest;
 import com.nadi.dto.CreneauResponse;
 import com.nadi.model.Categorie;
 import com.nadi.model.Creneau;
+import com.nadi.model.CreneauException;
 import com.nadi.model.Entraineur;
 import com.nadi.model.Joueur;
 import com.nadi.model.JourSemaine;
 import com.nadi.model.Notification;
 import com.nadi.model.Utilisateur;
 import com.nadi.repository.CategorieRepository;
+import com.nadi.repository.CreneauExceptionRepository;
 import com.nadi.repository.CreneauRepository;
 import com.nadi.repository.EntraineurRepository;
 import com.nadi.repository.AbsenceRepository;
@@ -18,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 import java.util.ArrayList;
@@ -38,6 +43,7 @@ public class CreneauService {
     private final AbsenceRepository absenceRepository;
     private final JoueurRepository joueurRepository;
     private final NotificationService notificationService;
+    private final CreneauExceptionRepository creneauExceptionRepository;
 
     @Transactional(readOnly = true)
     public List<CreneauResponse> getAll() {
@@ -88,6 +94,7 @@ public class CreneauService {
     @Transactional
     public CreneauResponse create(CreneauRequest request) {
         JourSemaine jour = JourSemaine.valueOf(request.getJourSemaine().toUpperCase());
+        validateDateRange(request.getDateDebut(), request.getDateFin());
 
         validateNoOverlap(null, request.getTerrain(), jour, request.getHeureDebut(), request.getHeureFin());
 
@@ -100,6 +107,8 @@ public class CreneauService {
                 .heureFin(request.getHeureFin())
                 .categorie(categorie)
                 .terrain(request.getTerrain())
+                .dateDebut(request.getDateDebut())
+                .dateFin(request.getDateFin())
                 .build();
 
         Set<Entraineur> entraineurs = new HashSet<>();
@@ -141,6 +150,7 @@ public class CreneauService {
                 .orElseThrow(() -> new RuntimeException("Créneau non trouvé: " + id));
 
         JourSemaine jour = JourSemaine.valueOf(request.getJourSemaine().toUpperCase());
+        validateDateRange(request.getDateDebut(), request.getDateFin());
 
         validateNoOverlap(id, request.getTerrain(), jour, request.getHeureDebut(), request.getHeureFin());
 
@@ -152,6 +162,8 @@ public class CreneauService {
         creneau.setHeureFin(request.getHeureFin());
         creneau.setCategorie(categorie);
         creneau.setTerrain(request.getTerrain());
+        creneau.setDateDebut(request.getDateDebut());
+        creneau.setDateFin(request.getDateFin());
 
         Set<Entraineur> entraineurs = new HashSet<>();
         if (request.getEntraineurIds() != null && !request.getEntraineurIds().isEmpty()) {
@@ -180,6 +192,139 @@ public class CreneauService {
         notifyCreneauChange(creneau, "Entraînement supprimé");
         absenceRepository.deleteByCreneauId(id);
         creneauRepository.deleteById(id);
+    }
+
+    private static void validateDateRange(LocalDate debut, LocalDate fin) {
+        if (debut != null && fin != null && fin.isBefore(debut)) {
+            throw new RuntimeException("La date de fin doit être après la date de début");
+        }
+    }
+
+    /**
+     * Expands weekly templates into dated occurrences over [from, to],
+     * clipped to each slot's own [dateDebut, dateFin] bounds and with
+     * per-date exceptions applied (cancelled or modified with a reason).
+     */
+    @Transactional(readOnly = true)
+    public List<CreneauOccurrenceResponse> getOccurrences(LocalDate from, LocalDate to) {
+        if (from == null || to == null || to.isBefore(from)) {
+            throw new RuntimeException("Plage de dates invalide");
+        }
+        if (from.plusDays(366).isBefore(to)) {
+            throw new RuntimeException("Plage maximale : 366 jours");
+        }
+        List<CreneauOccurrenceResponse> occurrences = new ArrayList<>();
+        for (Creneau creneau : creneauRepository.findAll()) {
+            DayOfWeek target = DayOfWeek.of(creneau.getJourSemaine().ordinal() + 1);
+            Map<LocalDate, CreneauException> exceptions = new java.util.HashMap<>();
+            for (CreneauException exception : creneauExceptionRepository.findByCreneauId(creneau.getId())) {
+                exceptions.put(exception.getDate(), exception);
+            }
+            LocalDate start = from;
+            if (creneau.getDateDebut() != null && creneau.getDateDebut().isAfter(start)) {
+                start = creneau.getDateDebut();
+            }
+            LocalDate end = to;
+            if (creneau.getDateFin() != null && creneau.getDateFin().isBefore(end)) {
+                end = creneau.getDateFin();
+            }
+            LocalDate date = start;
+            while (!date.isAfter(end)) {
+                if (date.getDayOfWeek() == target) {
+                    occurrences.add(toOccurrence(creneau, date, exceptions.get(date)));
+                }
+                date = date.plusDays(1);
+            }
+        }
+        occurrences.sort((a, b) -> {
+            int cmp = a.getDate().compareTo(b.getDate());
+            if (cmp != 0) {
+                return cmp;
+            }
+            return String.valueOf(a.getHeureDebut()).compareTo(String.valueOf(b.getHeureDebut()));
+        });
+        return occurrences;
+    }
+
+    private CreneauOccurrenceResponse toOccurrence(Creneau creneau, LocalDate date, CreneauException exception) {
+        LocalTime heureDebut = creneau.getHeureDebut();
+        LocalTime heureFin = creneau.getHeureFin();
+        String terrain = creneau.getTerrain();
+        String statut = "NORMALE";
+        String motif = null;
+        if (exception != null) {
+            if (exception.getStatut() == CreneauException.StatutException.ANNULEE) {
+                statut = "ANNULEE";
+            } else {
+                statut = "MODIFIEE";
+                if (exception.getHeureDebut() != null) {
+                    heureDebut = exception.getHeureDebut();
+                }
+                if (exception.getHeureFin() != null) {
+                    heureFin = exception.getHeureFin();
+                }
+                if (exception.getTerrain() != null && !exception.getTerrain().isBlank()) {
+                    terrain = exception.getTerrain();
+                }
+            }
+            motif = exception.getMotif();
+        }
+        Set<String> coachNames = new java.util.TreeSet<>();
+        if (creneau.getEntraineurs() != null) {
+            for (Entraineur coach : creneau.getEntraineurs()) {
+                coachNames.add(coach.getPrenom() + " " + coach.getNom());
+            }
+        }
+        if (creneau.getEntraineur() != null) {
+            coachNames.add(creneau.getEntraineur().getPrenom() + " " + creneau.getEntraineur().getNom());
+        }
+        return CreneauOccurrenceResponse.builder()
+                .creneauId(creneau.getId())
+                .date(date)
+                .heureDebut(heureDebut)
+                .heureFin(heureFin)
+                .terrain(terrain)
+                .categorieId(creneau.getCategorie() != null ? creneau.getCategorie().getId() : null)
+                .categorieNom(creneau.getCategorie() != null ? creneau.getCategorie().getNom() : null)
+                .coachNom(String.join(", ", coachNames))
+                .statut(statut)
+                .motif(motif)
+                .build();
+    }
+
+    @Transactional
+    public CreneauOccurrenceResponse saveException(Long creneauId, LocalDate date, String statut,
+                                                  LocalTime heureDebut, LocalTime heureFin,
+                                                  String terrain, String motif) {
+        Creneau creneau = creneauRepository.findById(creneauId)
+                .orElseThrow(() -> new RuntimeException("Créneau non trouvé: " + creneauId));
+        if (date == null) {
+            throw new RuntimeException("La date de l'exception est obligatoire");
+        }
+        if (motif == null || motif.isBlank()) {
+            throw new RuntimeException("Un motif est obligatoire pour modifier une séance");
+        }
+        CreneauException.StatutException statutEnum;
+        try {
+            statutEnum = CreneauException.StatutException.valueOf(statut);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new RuntimeException("Statut invalide (ANNULEE ou MODIFIEE)");
+        }
+        CreneauException exception = creneauExceptionRepository
+                .findByCreneauIdAndDate(creneauId, date)
+                .orElse(CreneauException.builder().creneau(creneau).date(date).build());
+        exception.setStatut(statutEnum);
+        exception.setHeureDebut(heureDebut);
+        exception.setHeureFin(heureFin);
+        exception.setTerrain(terrain);
+        exception.setMotif(motif);
+        creneauExceptionRepository.save(exception);
+        return toOccurrence(creneau, date, exception);
+    }
+
+    @Transactional
+    public void deleteException(Long creneauId, LocalDate date) {
+        creneauExceptionRepository.deleteByCreneauIdAndDate(creneauId, date);
     }
 
     /**
@@ -316,6 +461,8 @@ public class CreneauService {
                 .entraineurPrenom(premierEntraineurPrenom)
                 .entraineurs(entraineurInfos)
                 .terrain(c.getTerrain())
+                .dateDebut(c.getDateDebut())
+                .dateFin(c.getDateFin())
                 .createdAt(c.getCreatedAt())
                 .build();
     }

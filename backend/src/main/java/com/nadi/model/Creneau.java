@@ -61,6 +61,12 @@ public class Creneau {
     @Column(nullable = false)
     private String terrain;
 
+    // Recurrence bounds (nullable = unbounded). A one-shot slot uses the
+    // same date for both. ddl-auto:update only adds nullable columns safely.
+    private java.time.LocalDate dateDebut;
+
+    private java.time.LocalDate dateFin;
+
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 

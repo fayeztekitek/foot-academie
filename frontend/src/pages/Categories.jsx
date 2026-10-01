@@ -15,7 +15,8 @@ export default function Categories() {
   const [editSlot, setEditSlot] = useState(null);
   const [deleteSlotConfirm, setDeleteSlotConfirm] = useState(null);
   const [catForm, setCatForm] = useState({ nom: '', description: '', ageMin: '', ageMax: '' });
-  const [slotForm, setSlotForm] = useState({ jourSemaine: 'LUNDI', heureDebut: '', heureFin: '', categorieId: '', entraineurId: '', terrain: '' });
+  const emptySlotForm = { jourSemaine: 'LUNDI', heureDebut: '', heureFin: '', categorieId: '', entraineurId: '', terrain: '', dateDebut: '', dateFin: '' };
+  const [slotForm, setSlotForm] = useState(emptySlotForm);
   const [slotSearch, setSlotSearch] = useState('');
   const [slotDayFilter, setSlotDayFilter] = useState('');
   const [slotCatFilter, setSlotCatFilter] = useState('');
@@ -119,6 +120,8 @@ export default function Categories() {
       categorieId: s.categorieId || '',
       entraineurId: s.entraineurId || '',
       terrain: s.terrain || '',
+      dateDebut: s.dateDebut || '',
+      dateFin: s.dateFin || '',
     });
     setEditSlot(s);
   };
@@ -132,10 +135,17 @@ export default function Categories() {
   };
 
   const handleSlotSubmit = () => {
+    // Optional dates: empty string would fail LocalDate parsing -> send null.
+    // Same date twice = one-shot session; empty = unbounded weekly recurrence.
+    const payload = {
+      ...slotForm,
+      dateDebut: slotForm.dateDebut || null,
+      dateFin: slotForm.dateFin || null,
+    };
     if (editSlot) {
-      updateSlotMutation.mutate({ id: editSlot.id, data: slotForm });
+      updateSlotMutation.mutate({ id: editSlot.id, data: payload });
     } else {
-      createSlotMutation.mutate(slotForm);
+      createSlotMutation.mutate(payload);
     }
   };
 
@@ -146,7 +156,7 @@ export default function Categories() {
         <div className="panel">
           <div className="flex justify-between items-center px-5 py-4 border-b" style={{ borderColor: 'var(--line)' }}>
             <h3 className="font-bebas text-lg m-0" style={{ color: 'var(--pitch-dark)' }}>Créneaux d'entraînement</h3>
-            <button onClick={() => { setSlotForm({ jourSemaine: 'LUNDI', heureDebut: '', heureFin: '', categorieId: '', entraineurId: '', terrain: '' }); setEditSlot(null); setShowSlotModal(true); }} className="text-xs font-semibold no-underline cursor-pointer" style={{ color: 'var(--pitch)' }}>+ Ajouter</button>
+            <button onClick={() => { setSlotForm(emptySlotForm); setEditSlot(null); setShowSlotModal(true); }} className="text-xs font-semibold no-underline cursor-pointer" style={{ color: 'var(--pitch)' }}>+ Ajouter</button>
           </div>
           {/* Slot filters */}
           <div className="px-5 py-3 flex gap-3 flex-wrap items-center border-b" style={{ borderColor: 'var(--line)' }}>
@@ -322,6 +332,19 @@ export default function Categories() {
                   <input type="time" value={slotForm.heureFin} onChange={e => setSlotForm({...slotForm, heureFin: e.target.value})} className="input-field" required />
                 </div>
               </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="label">Valable du</label>
+                  <input type="date" value={slotForm.dateDebut} onChange={e => setSlotForm({...slotForm, dateDebut: e.target.value})} className="input-field" />
+                </div>
+                <div className="flex-1">
+                  <label className="label">Valable jusqu'au</label>
+                  <input type="date" value={slotForm.dateFin} min={slotForm.dateDebut || undefined} onChange={e => setSlotForm({...slotForm, dateFin: e.target.value})} className="input-field" />
+                </div>
+              </div>
+              <p className="-mt-1 text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                Vide = récurrence hebdomadaire sans fin. Même date deux fois = séance unique.
+              </p>
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="label">Entraîneur *</label>

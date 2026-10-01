@@ -28,4 +28,8 @@ public class CreneauRequest {
 
     @NotBlank(message = "Le terrain est obligatoire")
     private String terrain;
+
+    private java.time.LocalDate dateDebut;
+
+    private java.time.LocalDate dateFin;
 }

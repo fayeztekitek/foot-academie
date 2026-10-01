@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalTime;
@@ -43,7 +44,8 @@ class CreneauServiceLegacyCoachTest {
 
     private CreneauService service() {
         return new CreneauService(creneauRepository, categorieRepository, entraineurRepository,
-                absenceRepository, joueurRepository, notificationService);
+                absenceRepository, joueurRepository, notificationService,
+                Mockito.mock(com.nadi.repository.CreneauExceptionRepository.class));
     }
 
     private Categorie category() {

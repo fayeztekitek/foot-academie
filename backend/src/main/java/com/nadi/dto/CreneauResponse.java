@@ -26,6 +26,8 @@ public class CreneauResponse {
     private String entraineurPrenom;
     private List<EntraineurInfo> entraineurs;
     private String terrain;
+    private java.time.LocalDate dateDebut;
+    private java.time.LocalDate dateFin;
     private LocalDateTime createdAt;
 
     @Data
