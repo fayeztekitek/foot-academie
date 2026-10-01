@@ -26,7 +26,7 @@ public class NotificationController {
     private final DeviceTokenRepository deviceTokenRepository;
 
     @GetMapping
-    public ResponseEntity<Page<Notification>> getAll(
+    public ResponseEntity<Page<com.nadi.dto.NotificationResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Utilisateur user = getCurrentUser();

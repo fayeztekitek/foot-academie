@@ -1,5 +1,6 @@
 package com.nadi.service;
 
+import com.nadi.dto.NotificationResponse;
 import com.nadi.model.Notification;
 import com.nadi.model.Utilisateur;
 import com.nadi.repository.NotificationRepository;
@@ -22,13 +23,31 @@ public class NotificationService {
     private final PushNotificationService pushNotificationService;
 
     @Transactional(readOnly = true)
-    public Page<Notification> getByUser(Long userId, Pageable pageable) {
-        return notificationRepository.findByUtilisateurIdOrderByDateEnvoiDesc(userId, pageable);
+    public Page<NotificationResponse> getByUser(Long userId, Pageable pageable) {
+        return notificationRepository.findByUtilisateurIdOrderByDateEnvoiDesc(userId, pageable)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
     public List<Notification> getUnread(Long userId) {
         return notificationRepository.findByUtilisateurIdAndLuFalse(userId);
+    }
+
+    /**
+     * Entities are mapped inside the transaction: serializing the lazy
+     * {@code utilisateur} association outside of it (open-in-view is off)
+     * threw LazyInitializationException (HTTP 500 on GET /notifications).
+     * The DTO also guarantees no account data ever leaves the server.
+     */
+    private NotificationResponse toResponse(Notification notification) {
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .type(notification.getType() != null ? notification.getType().name() : null)
+                .message(notification.getMessage())
+                .details(notification.getDetails())
+                .lu(notification.isLu())
+                .dateEnvoi(notification.getDateEnvoi())
+                .build();
     }
 
     @Transactional(readOnly = true)

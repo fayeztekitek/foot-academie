@@ -10,10 +10,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +62,19 @@ class NotificationServiceTest {
         when(notificationRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> service().markAsReadForUser(999L, 42L));
+    }
+
+    @Test
+    void listMapsToDtoWithoutAccountData() {
+        when(notificationRepository.findByUtilisateurIdOrderByDateEnvoiDesc(eq(42L), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(notification(42L))));
+
+        org.springframework.data.domain.Page<com.nadi.dto.NotificationResponse> page =
+                service().getByUser(42L, org.springframework.data.domain.PageRequest.of(0, 20));
+
+        assertEquals(1, page.getTotalElements());
+        assertEquals("Rappel", page.getContent().get(0).getMessage());
+        assertFalse(page.getContent().get(0).getLu());
     }
 
     @Test

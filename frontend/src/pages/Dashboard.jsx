@@ -56,6 +56,9 @@ export default function Dashboard() {
   const { data: detailed } = useQuery({
     queryKey: ['detailed-stats'],
     queryFn: () => statsApi.getDetailed().then(r => r.data),
+    // Backend restricts /stats/detailed to ADMIN: do not fire it for
+    // COACH/PARENT roles (was producing 403 noise in the console).
+    enabled: user?.role === 'ADMIN',
   });
 
   const { data: todaySlots, isLoading: slotsLoading } = useQuery({
