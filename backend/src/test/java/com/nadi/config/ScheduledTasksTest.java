@@ -32,15 +32,15 @@ class ScheduledTasksTest {
     @Mock
     private UtilisateurRepository utilisateurRepository;
     @Mock
-    private JoueurRepository joueurRepository;
-    @Mock
     private PaiementRepository paiementRepository;
     @Mock
     private AcademieRepository academieRepository;
+    @Mock
+    private com.nadi.service.MonthlyPaymentService monthlyPaymentService;
 
     private ScheduledTasks tasks() {
         return new ScheduledTasks(documentService, documentRepository, notificationService,
-                utilisateurRepository, joueurRepository, paiementRepository, academieRepository);
+                utilisateurRepository, paiementRepository, academieRepository, monthlyPaymentService);
     }
 
     private Utilisateur user(Long id) {

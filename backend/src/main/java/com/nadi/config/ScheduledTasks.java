@@ -3,6 +3,7 @@ package com.nadi.config;
 import com.nadi.model.*;
 import com.nadi.repository.*;
 import com.nadi.service.DocumentService;
+import com.nadi.service.MonthlyPaymentService;
 import com.nadi.service.NotificationService;
 import com.nadi.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +28,9 @@ public class ScheduledTasks {
     private final DocumentRepository documentRepository;
     private final NotificationService notificationService;
     private final UtilisateurRepository utilisateurRepository;
-    private final JoueurRepository joueurRepository;
     private final PaiementRepository paiementRepository;
     private final AcademieRepository academieRepository;
-
-    private static final BigDecimal MONTANT_MENSUEL = new BigDecimal("60.000");
+    private final MonthlyPaymentService monthlyPaymentService;
 
     @Scheduled(cron = "0 0 7 * * *")
     public void checkDocumentExpiry() {
@@ -91,51 +90,25 @@ public class ScheduledTasks {
     public void generateMonthlyPayments() {
         log.info("Generating monthly payments for active players...");
         YearMonth currentMonth = YearMonth.now();
-        LocalDate monthStart = currentMonth.atDay(1);
-        LocalDate monthEnd = currentMonth.atEndOfMonth();
 
-        List<Long> allTenantIds = academieRepository.findAll().stream()
-                .map(Academie::getId)
-                .toList();
-
-        for (Long tenantId : allTenantIds) {
+        for (Long tenantId : allTenantIds()) {
             try {
                 TenantContext.setTenantId(tenantId);
-                int created = 0;
-
-                List<Joueur> allPlayers = joueurRepository.findAll();
-                for (Joueur joueur : allPlayers) {
-                    if (joueur.getParent() == null) continue;
-                    if (joueur.getDateEntree() == null) continue;
-                    if (joueur.getDateEntree().isAfter(monthEnd)) continue;
-                    if (joueur.getFrequence() == null) continue;
-
-                    boolean alreadyExists = paiementRepository
-                            .findByJoueurIdAndDateEcheanceBetween(joueur.getId(), monthStart, monthEnd)
-                            .stream().anyMatch(p -> p.getStatut() != StatutPaiement.ANNULE);
-
-                    if (alreadyExists) continue;
-
-                    Paiement paiement = Paiement.builder()
-                            .joueur(joueur)
-                            .parent(joueur.getParent())
-                            .montant(MONTANT_MENSUEL)
-                            .devise("TND")
-                            .dateEcheance(monthStart)
-                            .statut(StatutPaiement.EN_ATTENTE)
-                            .formule(joueur.getFrequence())
-                            .build();
-                    paiementRepository.save(paiement);
-                    created++;
-                }
-
-                log.info("Tenant {}: Monthly payments generated: {} new payments for {}", tenantId, created, currentMonth);
+                int created = monthlyPaymentService.ensureMonthlyPayments(tenantId, currentMonth);
+                log.info("Tenant {}: Monthly payments generated: {} new payments for {}",
+                        tenantId, created, currentMonth);
             } catch (Exception e) {
                 log.error("Error generating monthly payments for tenant {}: {}", tenantId, e.getMessage());
             } finally {
                 TenantContext.clear();
             }
         }
+    }
+
+    private List<Long> allTenantIds() {
+        return academieRepository.findAll().stream()
+                .map(Academie::getId)
+                .toList();
     }
 
     /**
